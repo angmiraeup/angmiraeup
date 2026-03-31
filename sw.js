@@ -9,14 +9,12 @@ firebase.initializeApp({
 });
 
 const messaging = firebase.messaging();
-messaging.onBackgroundMessage((payload) => {
-    const notificationTitle = payload.data.title || "Mirae Up Support";
-    const notificationOptions = {
-        body: payload.data.body || "New Message Received",
+messaging.onBackgroundMessage((p) => {
+    self.registration.showNotification(p.data.title || "Mirae Support", {
+        body: p.data.body,
         icon: 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png',
-        vibrate: [500, 100, 500, 100, 500],
-        requireInteraction: true, // Yeh 5 min tak chipka rahega
+        vibrate: [500, 100, 500],
+        requireInteraction: true,
         tag: 'mirae-alert'
-    };
-    self.registration.showNotification(notificationTitle, notificationOptions);
+    });
 });
