@@ -10,7 +10,7 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 messaging.onBackgroundMessage((p) => {
-    self.registration.showNotification(p.data.title || "Mirae Support", {
+    self.registration.showNotification("Mirae Up Support", {
         body: p.data.body || "New Message Received",
         icon: 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png',
         vibrate: [500, 100, 500],
