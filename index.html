@@ -8,7 +8,6 @@
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-messaging-compat.js"></script>
-    <script src="https://download.agora.io/sdk/release/AgoraRTC_N.js"></script>
     <style>
         * { margin:0; padding:0; box-sizing:border-box; font-family: 'Segoe UI', sans-serif; }
         html, body { height: 100dvh; width: 100%; overflow: hidden; background:#dadbd3; }
@@ -19,42 +18,34 @@
         #waPopup { position: absolute; top: -100px; left: 10px; right: 10px; background: white; padding: 12px; border-radius: 12px; display: flex; align-items: center; gap: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); transition: 0.5s; z-index: 1000; border-left: 5px solid #25d366; cursor: pointer; }
         #waPopup.show { top: 15px; }
 
-        .chat-box { flex:1; padding:15px; overflow-y:auto; display:flex; flex-direction:column; background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png'); background-size: cover; }
+        .chat-box { flex:1; padding:15px; overflow-y:auto; display:flex; flex-direction:column; background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png'); background-size: cover; padding-bottom: 20px; }
         .msg { max-width:85%; padding:10px 14px; margin-bottom:12px; border-radius:10px; font-size:15px; line-height:1.5; position:relative; box-shadow: 0 1px 2px rgba(0,0,0,0.1); word-wrap: break-word; display:flex; flex-direction:column; background: white; }
         .received { align-self: flex-start; border-top-left-radius:0; }
         .sent { background:#dcf8c6; align-self: flex-end; border-top-right-radius:0; }
         .time { font-size: 10px; color: #888; align-self: flex-end; margin-top: 4px; }
-        
-        #callUI { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(7, 94, 84, 0.98); z-index:2000; display:none; flex-direction:column; align-items:center; justify-content:center; color:white; }
-        .input-wrapper { background:#f0f0f0; padding:10px; display:flex; align-items:center; gap:8px; min-height: 70px; border-top:1px solid #ddd; padding-bottom: calc(10px + env(safe-area-inset-bottom)); }
-        .input-container { flex:1; background: white; border-radius: 25px; display: flex; align-items: center; padding: 2px 15px; box-shadow: 0 1px 1px rgba(0,0,0,0.1); }
-        .input-container input { flex:1; border:none; outline:none; padding:12px 5px; font-size:16px; background: transparent; }
+        .msg img, .msg video { max-width: 100%; border-radius: 8px; margin-top: 5px; }
+
+        .input-wrapper { background:#f0f0f0; padding:8px 10px; display:flex; align-items:center; gap:8px; min-height: 65px; border-top:1px solid #ddd; padding-bottom: calc(10px + env(safe-area-inset-bottom)); }
+        .input-container { flex:1; background: white; border-radius: 25px; display: flex; align-items: center; padding: 2px 15px; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+        .input-container input { flex:1; border:none; outline:none; padding:10px 5px; font-size:16px; background: transparent; width: 100%; }
         button#sendBtn { background:#075e54; color:white; border:none; width:48px; height:48px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink: 0; }
         
         .btn-row { display:none; gap:10px; justify-content:center; padding:15px; background:rgba(255,255,255,0.9); flex-wrap: wrap; border-top: 1px solid #ddd; }
         .opt-btn { background:#075e54; color:white; border:none; padding:10px 20px; border-radius:25px; cursor:pointer; font-weight:bold; }
-        .action-btn { display: block; background: #0088cc; color: white !important; padding: 12px; border-radius: 8px; text-decoration: none; font-weight: bold; text-align: center; margin: 5px 0; width: 100%; border:none; cursor:pointer; font-size: 14px; }
+        
+        .action-card { background: white; padding: 10px; border-radius: 10px; margin-bottom: 12px; align-self: flex-start; box-shadow: 0 1px 2px rgba(0,0,0,0.1); width: 85%; }
+        .action-btn { display: block; color: white !important; padding: 12px; border-radius: 8px; text-decoration: none; font-weight: bold; text-align: center; margin: 8px 0; width: 100%; border:none; cursor:pointer; font-size: 14px; }
     </style>
 </head>
 <body>
 <audio id="waSound" src="https://assets.mixkit.co/active_storage/sfx/2357/2357-preview.mp3" preload="auto"></audio>
-<audio id="ringSound" src="https://assets.mixkit.co/active_storage/sfx/1359/1359-preview.mp3" loop preload="auto"></audio>
-
-<div id="callUI">
-    <img src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" width="100" style="border-radius:50%; border:3px solid white; margin-bottom:20px;">
-    <h2 id="callStatus">Support Calling...</h2>
-    <div style="display:flex; margin-top:50px; gap:30px;"><button id="ansBtn" style="background:#25d366;width:70px;height:70px;border-radius:50%;border:none;font-size:24px;color:white;cursor:pointer;">📞</button><button onclick="hangUpLocal()" style="background:#ff3b30;width:70px;height:70px;border-radius:50%;border:none;font-size:24px;color:white;cursor:pointer;">📵</button></div>
-</div>
-
 <div class="container">
     <div id="waPopup" onclick="this.classList.remove('show')"><img src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" width="40"><div style="flex:1;"><strong style="font-size:14px;color:#075e54;">Mirae Support</strong><p id="waPopupMsg" style="font-size:13px;color:#333;"></p></div></div>
     <div class="header"><img src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png"><div><div style="font-weight:bold; font-size: 16px;">Mirae Up Support</div><div id="status" style="font-size:12px; color:#cfd8dc;">Online</div></div></div>
     <div class="chat-box" id="chatBox"></div>
     <div id="buttonArea" class="btn-row"></div>
     <div class="input-wrapper">
-        <div class="input-container">
-            <input type="text" id="userInput" placeholder="Type a message..." autocomplete="off">
-        </div>
+        <div class="input-container"><input type="text" id="userInput" placeholder="Type a message..." autocomplete="off"></div>
         <button id="sendBtn"><svg width="24" height="24" viewBox="0 0 24 24" fill="white"><path d="M2,21L23,12L2,3V10L17,12L2,14V21Z" /></svg></button>
     </div>
 </div>
@@ -71,8 +62,6 @@ const firebaseConfig = {
 };
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
-const messaging = firebase.messaging();
-const AGORA_ID = "c0d5847270c04ed6b0bb4295ab2390b9";
 
 let userId = localStorage.getItem('chat_uid') || 'USR' + Math.floor(Math.random()*999999);
 localStorage.setItem('chat_uid', userId);
@@ -92,8 +81,8 @@ const botSteps = [
     { key: "telegram", type: "button", msg: "Do You Have Telegram App?", options: ["Yes", "No"] }
 ];
 
-let currentIdx = 0, isBotActive = true, agoraClient, localTrack;
-const chatBox = document.getElementById('chatBox'), userInput = document.getElementById('userInput'), buttonArea = document.getElementById('buttonArea'), statusText = document.getElementById('status'), waSound = document.getElementById('waSound'), ringSound = document.getElementById('ringSound');
+let currentIdx = 0, isBotActive = true;
+const chatBox = document.getElementById('chatBox'), userInput = document.getElementById('userInput'), buttonArea = document.getElementById('buttonArea'), statusText = document.getElementById('status'), waSound = document.getElementById('waSound');
 
 function getTime() { const d = new Date(); return d.getHours().toString().padStart(2,'0') + ":" + d.getMinutes().toString().padStart(2,'0'); }
 
@@ -103,18 +92,27 @@ function appendMsg(text, type, isHtml = true) {
     chatBox.appendChild(d); chatBox.scrollTop = chatBox.scrollHeight;
 }
 
+function showFinalOptions(showTg) {
+    appendMsg("Form Submitted! Chat With My Agent For Joining.", "received", true);
+    const card = document.createElement('div');
+    card.className = "action-card";
+    card.innerHTML = (showTg ? `<a href="https://t.me/workfortyping" target="_blank" class="action-btn" style="background:#0088cc">CLICK TO CHAT ON TELEGRAM</a>` : "") + `<button onclick="deferredPrompt.prompt()" class="action-btn" style="background:#e91e63">INSTALL MIRAE UP APP</button>`;
+    chatBox.appendChild(card);
+}
+
 window.onload = async () => {
     if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
     db.ref('status/' + userId).set('online');
     db.ref('status/' + userId).onDisconnect().set('offline');
 
+    const leadSnap = await db.ref('leads/' + userId).once('value');
+    const userData = leadSnap.val() || {};
     const chatSnap = await db.ref('chats/' + userId).once('value');
     if(chatSnap.exists()) chatSnap.forEach(c => appendMsg(c.val().message, c.val().sender === "Admin" ? "received" : "sent"));
 
-    const leadSnap = await db.ref('leads/' + userId).once('value');
-    const userData = leadSnap.val() || {};
-
-    if(userData.telegram) { isBotActive = false; } else {
+    if(userData.telegram) {
+        isBotActive = false;
+    } else {
         let count = 0;
         for(let s of botSteps) { if(s.key && userData[s.key]) count++; else if(s.type!=="auto") break; }
         currentIdx = (count > 0) ? count + 2 : 0;
@@ -123,9 +121,7 @@ window.onload = async () => {
 
     db.ref('chats/' + userId).on('child_added', snap => {
         const m = snap.val();
-        if(m.type === "call" && m.sender === "Admin") { document.getElementById('callUI').style.display='flex'; ringSound.play(); }
-        else if(m.type === "endcall") { document.getElementById('callUI').style.display='none'; ringSound.pause(); if(localTrack) localTrack.close(); }
-        else if(m.sender === "Admin") {
+        if(m.sender === "Admin") {
             let last = chatBox.lastElementChild;
             if(!last || !last.innerHTML.includes(m.message)) {
                 appendMsg(m.message, "received");
@@ -143,7 +139,8 @@ function runBot() {
     const step = botSteps[currentIdx];
     statusText.innerText = "typing...";
     setTimeout(() => {
-        appendMsg(step.msg, "received", true); statusText.innerText = "Online";
+        appendMsg(step.msg, "received", true);
+        statusText.innerText = "Online";
         if(step.type === "auto") { currentIdx++; runBot(); }
         else setupUI(step);
     }, 600);
@@ -155,8 +152,9 @@ function setupUI(step) {
     if(step.type === "button") {
         buttonArea.innerHTML = "";
         step.options.forEach(opt => {
-            const btn = document.createElement('button'); btn.className="opt-btn"; btn.innerText=opt;
-            btn.onclick = () => handleInput(opt); buttonArea.appendChild(btn);
+            const btn = document.createElement('button'); btn.className = "opt-btn"; btn.innerText = opt;
+            btn.onclick = () => { buttonArea.style.display = "none"; handleInput(opt); };
+            buttonArea.appendChild(btn);
         });
     }
     if(step.type === "date") userInput.onchange = () => { if(userInput.value) handleInput(userInput.value); };
@@ -164,13 +162,14 @@ function setupUI(step) {
 
 async function handleInput(val) {
     const step = botSteps[currentIdx];
-    if(step && step.pattern && !step.pattern.test(val.toUpperCase())) return appendMsg("❌ Format Galat Hai!", "received", true);
+    if(step && step.pattern && !step.pattern.test(val.toUpperCase())) return appendMsg("❌ Invalid Format!", "received", true);
+    
     appendMsg(val, "sent");
     userInput.value = "";
     if(step && step.key) {
         await db.ref('leads/' + userId).update({ [step.key]: val, uid: userId });
         await db.ref('chats/' + userId).push({ sender: "User", message: val, time: getTime() });
-        if(step.key === "telegram") { isBotActive = false; appendMsg("Form Submitted! Chat with agent.", "received"); }
+        if(step.key === "telegram") { isBotActive = false; showFinalOptions(val === "Yes"); return; }
     }
     currentIdx++; runBot();
 }
@@ -179,20 +178,13 @@ document.getElementById('sendBtn').onclick = () => {
     const v = userInput.value.trim();
     if(!v) return;
     if(isBotActive && currentIdx < botSteps.length && botSteps[currentIdx].type === "input") handleInput(v);
-    else { appendMsg(v, "sent"); db.ref('chats/' + userId).push({ sender: "User", message: v, time: getTime() }); }
+    else { appendMsg(v, "sent"); db.ref('chats/' + userId).push({ sender: "User", message: v }); }
     userInput.value = "";
 };
 
-document.getElementById('ansBtn').onclick = async () => {
-    document.getElementById('waRing').pause();
-    agoraClient = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
-    await agoraClient.join(AGORA_ID, "mirae_" + userId, null);
-    localTrack = await AgoraRTC.createMicrophoneAudioTrack({ AEC: true, ANS: true });
-    await agoraClient.publish([localTrack]);
-    agoraClient.on("user-published", async (u, mt) => { await agoraClient.subscribe(u, mt); if (mt === "audio") u.audioTrack.play(); });
-};
-
-function hangUpLocal() { db.ref('chats/' + userId).push({ sender: "User", type: "endcall", message: "Ended" }); }
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; });
+window.addEventListener('appinstalled', () => db.ref('leads/' + userId).update({ installed: "Yes" }));
 </script>
 </body>
 </html>
