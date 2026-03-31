@@ -5,11 +5,9 @@
   "display": "standalone",
   "background_color": "#075e54",
   "theme_color": "#075e54",
-  "icons": [
-    {
-      "src": "https://cdn-icons-png.flaticon.com/512/3135/3135715.png",
-      "sizes": "512x512",
-      "type": "image/png"
-    }
-  ]
+  "icons": [{
+    "src": "https://cdn-icons-png.flaticon.com/512/3135/3135715.png",
+    "sizes": "512x512",
+    "type": "image/png"
+  }]
 }
