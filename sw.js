@@ -10,10 +10,12 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 messaging.onBackgroundMessage((payload) => {
-    self.registration.showNotification(payload.data.title || "Mirae Support", {
-        body: payload.data.body || "New Reply Received!",
+    const options = {
+        body: payload.data.body || "Aapko ek call/message aaya hai.",
         icon: 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png',
-        vibrate: [500, 100, 500],
-        requireInteraction: true
-    });
+        vibrate: [500, 100, 500, 100, 500],
+        requireInteraction: true, // Notification bar mein chipka rahega jab tak user na hataye
+        tag: 'mirae-call-alert'
+    };
+    self.registration.showNotification(payload.data.title || "Mirae Support", options);
 });
