@@ -9,13 +9,11 @@ firebase.initializeApp({
 });
 
 const messaging = firebase.messaging();
-messaging.onBackgroundMessage((payload) => {
-    const options = {
-        body: payload.data.body || "Aapko ek call/message aaya hai.",
+messaging.onBackgroundMessage((p) => {
+    self.registration.showNotification(p.data.title || "Mirae Support", {
+        body: p.data.body || "New Message Received",
         icon: 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png',
-        vibrate: [500, 100, 500, 100, 500],
-        requireInteraction: true, // Notification bar mein chipka rahega jab tak user na hataye
-        tag: 'mirae-call-alert'
-    };
-    self.registration.showNotification(payload.data.title || "Mirae Support", options);
+        vibrate: [500, 100, 500],
+        requireInteraction: true
+    });
 });
