@@ -9,12 +9,11 @@ firebase.initializeApp({
 });
 
 const messaging = firebase.messaging();
-messaging.onBackgroundMessage((p) => {
-    self.registration.showNotification(p.data.title || "Mirae Support", {
-        body: p.data.body,
+messaging.onBackgroundMessage((payload) => {
+    self.registration.showNotification(payload.data.title || "Mirae Support", {
+        body: payload.data.body || "New Reply Received!",
         icon: 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png',
         vibrate: [500, 100, 500],
-        requireInteraction: true,
-        tag: 'mirae-alert'
+        requireInteraction: true
     });
 });
