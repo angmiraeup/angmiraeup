@@ -2,53 +2,53 @@
 <html>
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Mirae Pro</title>
+    <title>Admin Pro Control</title>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
+    <script src="https://download.agora.io/sdk/release/AgoraRTC_N.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         body { font-family: sans-serif; margin: 0; background: #f0f2f5; display: flex; height: 100vh; flex-direction: column; }
-        .nav { background: #075e54; color: white; padding: 12px; display: flex; justify-content: space-between; align-items: center; }
-        .main { display: flex; flex: 1; overflow: hidden; }
+        .nav { background: #075e54; color: white; padding: 10px; display: flex; justify-content: space-between; align-items: center; }
+        .main { display: flex; flex: 1; overflow: hidden; flex-direction: row; }
         .sidebar { width: 280px; background: white; border-right: 1px solid #ddd; overflow-y: auto; }
         .chat-win { flex: 1; display: flex; flex-direction: column; background: #e5ddd5; position: relative; }
         .user-card { padding: 12px; border-bottom: 1px solid #eee; cursor: pointer; }
         .user-card.active { background: #e9f5f2; border-left: 5px solid #075e54; }
         .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 5px; }
         .online { background: #25d366; } .offline { background: #bbb; }
+        .badge { font-size: 10px; padding: 2px 5px; border-radius: 4px; color: white; margin-left: 5px; background: #e91e63; }
         .msgs { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; padding-bottom: 70px; }
         .msg { padding: 10px; margin: 5px; border-radius: 6px; max-width: 80%; font-size: 14px; box-shadow: 0 1px 1px rgba(0,0,0,0.1); background: white; }
         .Admin { align-self: flex-end; background: #dcf8c6; }
-        
         .input-bar { position: absolute; bottom: 0; left: 0; right: 0; padding: 10px; background: #f0f0f0; display: flex; gap: 8px; align-items: center; border-top: 1px solid #ccc; z-index:1000; }
         input { flex: 1; padding: 12px; border-radius: 20px; border: 1px solid #ccc; outline: none; }
-        .action { background: #075e54; color: white; border: none; padding: 10px 18px; border-radius: 20px; cursor: pointer; }
-        @media (max-width: 768px) { .main { flex-direction: column; } .sidebar { width: 100%; height: 35%; } .chat-win { height: 65%; } }
+        .action { background: #075e54; color: white; border: none; padding: 10px; border-radius: 50%; cursor: pointer; width: 42px; height: 42px; display:flex; align-items:center; justify-content:center; }
+        @media (max-width: 768px) { body { flex-direction: column; } .main { flex-direction: column; } .sidebar { width: 100%; height: 35%; } .chat-win { height: 65%; } }
     </style>
 </head>
 <body>
-<div class="nav"><b>Admin Control</b><button onclick="downloadExcel()" style="background:#128c7e; color:white; border:none; padding:8px 12px; border-radius:5px;">📥 Excel</button></div>
-<div class="main">
-    <div class="sidebar" id="userList"></div>
-    <div class="chat-win">
-        <div id="cName" style="padding:10px; background:#fff; font-weight:bold; color:#075e54;">Select Lead</div>
-        <div class="msgs" id="chatMsgs"></div>
-        <div class="input-bar">
-            <input type="file" id="admMedia" style="display:none" onchange="uploadAdminMedia(this)">
-            <button onclick="document.getElementById('admMedia').click()" style="background:none; border:none; font-size:24px; cursor:pointer;">📎</button>
-            <input type="text" id="aInp" placeholder="Type a message or Link...">
-            <button class="action" onclick="sendReply()">Send</button>
-        </div>
+<div class="nav"><b>Admin Control</b><button onclick="downloadExcel()" style="background:#128c7e;color:white;border:none;padding:8px;border-radius:5px;">📥 Excel</button></div>
+<div class="main"><div class="sidebar" id="userList"></div><div class="chat-win">
+    <div id="cName" style="padding:10px; background:#fff; font-weight:bold; color:#075e54; border-bottom:1px solid #ddd;">Select Lead</div>
+    <div class="msgs" id="chatMsgs"></div>
+    <div class="input-bar">
+        <button id="cBtn" onclick="startAdminCall()" style="background:#25d366" class="action">📞</button>
+        <button id="mBtn" onclick="toggleMute()" style="background:#555; display:none;" class="action">🎙️</button>
+        <button id="eBtn" onclick="adminEndCall()" style="background:#ff3b30; display:none;" class="action">📵</button>
+        <input type="file" id="admMedia" style="display:none" onchange="uploadToCloud(this)">
+        <button onclick="document.getElementById('admMedia').click()" class="action" style="background:#555">📎</button>
+        <input type="text" id="aInp" placeholder="Message...">
+        <button class="action" onclick="sendReply()">➤</button>
     </div>
-</div>
+</div></div>
 <script>
 const firebaseConfig = { apiKey: "AIzaSyDw439IXSmTpustCkIQpRQ7foZ-hc8XiDQ", authDomain: "workhatapp.firebaseapp.com", databaseURL: "https://workhatapp-default-rtdb.asia-southeast1.firebasedatabase.app", projectId: "workhatapp", storageBucket: "workhatapp.appspot.com", messagingSenderId: "971559169599", appId: "1:971559169599:web:082be923ea9782440e128a" };
 const ONESIGNAL_REST_KEY = "os_v2_org_2x5pz2r2n5csbmgp42xep5e5ur22e5wh5mvuziftfk5flbxatxo3n664ml4iyhei7dygyvt6ev7b2epajcx4w4vn56j74xsljlnugva";
 const ONESIGNAL_APP_ID = "c029d484-4048-4dfd-b88f-b6080f1cbb84";
-
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
-let activeUid = ""; let allLeads = [];
+let activeUid = "", agoraClient, localTrack, isMuted = false, allLeads = [];
 
 db.ref('leads').on('value', snap => {
     const list = document.getElementById('userList'); list.innerHTML = ""; allLeads = [];
@@ -58,7 +58,8 @@ db.ref('leads').on('value', snap => {
         div.className = `user-card ${activeUid === u.key ? 'active' : ''}`;
         db.ref('status/' + u.key).on('value', s => {
             const dot = s.val() === 'online' ? 'online' : 'offline';
-            div.innerHTML = `<span class="dot ${dot}"></span><b>${d.fullName || 'User'}</b><br><small>${u.key}</small>`;
+            const app = d.installed === 'Yes' ? '<span class="badge">App</span>' : '';
+            div.innerHTML = `<span class="dot ${dot}"></span><b>${d.fullName || 'User'}</b> ${app}<br><small>${u.key}</small>`;
         });
         div.onclick = () => { activeUid = u.key; document.getElementById('cName').innerText = d.fullName; loadChat(u.key); };
         list.appendChild(div);
@@ -71,7 +72,7 @@ function loadChat(uid) {
         snap.forEach(m => {
             const d = m.val();
             const div = document.createElement('div'); div.className = `msg ${d.sender}`;
-            if(d.message.includes("res.cloudinary.com")) div.innerHTML = `<img src="${d.message}" style="width:100%; border-radius:5px;">`;
+            if(d.message && d.message.includes("res.cloudinary.com")) div.innerHTML = `<img src="${d.message}" style="width:100%">`;
             else div.innerText = d.message;
             box.appendChild(div);
         });
@@ -92,9 +93,36 @@ async function sendReply() {
     }
 }
 
-async function uploadAdminMedia(input) {
-    if(!activeUid) return alert("Select user first!");
-    const file = input.files[0];
+async function startAdminCall() {
+    if(!activeUid) return alert("Select user!");
+    document.getElementById('cBtn').style.display='none';
+    document.getElementById('mBtn').style.display='inline-block';
+    document.getElementById('eBtn').style.display='inline-block';
+    db.ref('chats/' + activeUid).push({ sender: "Admin", type: "call", message: "calling..." });
+    agoraClient = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
+    await agoraClient.join("c0d5847270c04ed6b0bb4295ab2390b9", "mirae_" + activeUid, null);
+    localTrack = await AgoraRTC.createMicrophoneAudioTrack({ AEC: true, ANS: true });
+    localTrack.setEnabled(false); // Start Muted
+    await agoraClient.publish([localTrack]);
+    agoraClient.on("user-published", async (u, mt) => { await agoraClient.subscribe(u, mt); if (mt === "audio") u.audioTrack.play(); });
+}
+
+function toggleMute() {
+    isMuted = !isMuted; localTrack.setEnabled(isMuted);
+    document.getElementById('mBtn').style.background = isMuted ? "#075e54" : "#ff3b30";
+}
+
+function adminEndCall() {
+    document.getElementById('cBtn').style.display='inline-block';
+    document.getElementById('mBtn').style.display='none';
+    document.getElementById('eBtn').style.display='none';
+    if(localTrack) localTrack.close();
+    db.ref('chats/' + activeUid).push({ sender: "Admin", type: "endcall", message: "Ended" });
+}
+
+async function uploadToCloud(input) {
+    if(!activeUid) return alert("Lead select!");
+    const file = input.files[0]; if(!file) return;
     const formData = new FormData();
     formData.append('file', file); formData.append('upload_preset', 'mirae_preset');
     const res = await fetch(`https://api.cloudinary.com/v1_1/dqw0atvkp/upload`, {method:'POST', body:formData});
