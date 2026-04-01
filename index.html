@@ -8,15 +8,18 @@
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-messaging-compat.js"></script>
-    <script src="https://download.agora.io/sdk/release/AgoraRTC_N.js"></script>
-    <!-- OneSignal SDK Added -->
     <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+    <script src="https://download.agora.io/sdk/release/AgoraRTC_N.js"></script>
     <style>
         * { margin:0; padding:0; box-sizing:border-box; font-family: 'Segoe UI', sans-serif; }
         html, body { height: 100dvh; width: 100%; overflow: hidden; background:#dadbd3; }
         .container { width:100%; max-width:500px; height: 100dvh; background:#e5ddd5; display:flex; flex-direction:column; margin: 0 auto; position: relative; }
-        .header { background:#075e54; color:white; padding:10px 15px; display:flex; align-items:center; gap:12px; height: 60px; z-index: 100; }
+        .header { background:#075e54; color:white; padding:10px 15px; display:flex; align-items:center; gap:12px; height: 60px; z-index: 100; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
         .header img { width:40px; height:40px; border-radius:50%; background:#fff; }
+        
+        #waPopup { position: absolute; top: -100px; left: 10px; right: 10px; background: white; padding: 12px; border-radius: 12px; display: flex; align-items: center; gap: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); transition: 0.5s; z-index: 1000; border-left: 5px solid #25d366; cursor: pointer; }
+        #waPopup.show { top: 15px; }
+
         .chat-box { flex:1; padding:15px; overflow-y:auto; display:flex; flex-direction:column; background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png'); background-size: cover; padding-bottom: 20px; }
         .msg { max-width:85%; padding:10px 14px; margin-bottom:12px; border-radius:10px; font-size:15px; line-height:1.5; position:relative; box-shadow: 0 1px 2px rgba(0,0,0,0.1); word-wrap: break-word; display:flex; flex-direction:column; background: white; }
         .received { align-self: flex-start; border-top-left-radius:0; }
@@ -28,14 +31,18 @@
         .call-btn-circle { width:70px; height:70px; border-radius:50%; border:none; color:white; font-size:24px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
 
         .input-wrapper { background:#f0f0f0; padding:8px 10px; display:flex; align-items:center; gap:8px; min-height: 65px; border-top:1px solid #ddd; padding-bottom: calc(10px + env(safe-area-inset-bottom)); }
-        .input-container { flex:1; background: white; border-radius: 25px; display: flex; align-items: center; padding: 2px 15px; box-shadow: 0 1px 1px rgba(0,0,0,0.1); }
-        .input-container input { flex:1; border:none; outline:none; padding:10px 5px; font-size:16px; background: transparent; width: 100%; }
+        .input-container { flex:1; background: white; border-radius: 25px; display: flex; align-items: center; padding: 2px 15px; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+        .input-container input { flex:1; border:none; outline:none; padding:12px 5px; font-size:16px; background: transparent; width: 100%; }
         button#sendBtn { background:#075e54; color:white; border:none; width:48px; height:48px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink: 0; }
         button#sendBtn svg { width: 24px; height: 24px; fill: white; margin-left: 3px; }
         
         .btn-row { display:none; gap:10px; justify-content:center; padding:15px; background:rgba(255,255,255,0.9); flex-wrap: wrap; border-top: 1px solid #ddd; }
         .opt-btn { background:#075e54; color:white; border:none; padding:10px 20px; border-radius:25px; cursor:pointer; font-weight:bold; }
+        .action-card { background: white; padding: 12px; border-radius: 12px; margin-bottom: 12px; align-self: center; width: 90%; text-align: center; border: 1px solid #ddd; }
         .action-btn { display: block; background: #0088cc; color: white !important; padding: 12px; border-radius: 8px; text-decoration: none; font-weight: bold; text-align: center; margin: 10px 0; width: 100%; border:none; cursor:pointer; font-size: 14px; }
+        
+        /* Clickable Link Style */
+        .chat-link { color: #0088cc; font-weight: bold; text-decoration: underline; }
     </style>
 </head>
 <body>
@@ -52,10 +59,8 @@
 </div>
 
 <div class="container">
-    <div class="header">
-        <img src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png">
-        <div><div style="font-weight:bold; font-size: 16px;">Mirae Up Support</div><div id="status" style="font-size:12px; color:#cfd8dc;">Online</div></div>
-    </div>
+    <div id="waPopup" onclick="this.classList.remove('show')"><img src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" width="40"><div style="flex:1;"><strong style="font-size:14px;color:#075e54;">Mirae Support</strong><p id="waPopupMsg" style="font-size:13px;color:#333;"></p></div></div>
+    <div class="header"><img src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png"><div><div style="font-weight:bold; font-size: 16px;">Mirae Up Support</div><div id="status" style="font-size:12px; color:#cfd8dc;">Online</div></div></div>
     <div class="chat-box" id="chatBox"></div>
     <div id="buttonArea" class="btn-row"></div>
     <div class="input-wrapper" id="inputWrapper">
@@ -81,31 +86,30 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-// --- OneSignal Integration Start ---
+// --- NEW ONESIGNAL SETUP ---
 window.OneSignalDeferred = window.OneSignalDeferred || [];
 OneSignalDeferred.push(async function(OneSignal) {
     await OneSignal.init({
         appId: "c029d484-4048-4dfd-b88f-b6080f1cbb84",
     });
-    // Link User ID for targeted push notifications
+    // Link user ID to OneSignal for offline notifications
     OneSignal.setExternalUserId(localStorage.getItem('chat_uid'));
 });
-// --- OneSignal Integration End ---
 
 let userId = localStorage.getItem('chat_uid') || 'USR' + Math.floor(Math.random()*999999);
 localStorage.setItem('chat_uid', userId);
 
 const botSteps = [
     { key: "welcome", type: "auto", msg: "Welcome 🤗 To Ang Mirae Up Work From Home" },
-    { key: "details", type: "auto", msg: "<b>Work Details 👇</b><br><b>Typing & Captcha And Form Fill Work</b><br><b>Daily Payout ₹1000-2000/Day</b><br><br>Interested? Fill Form 👇" },
+    { key: "details", type: "auto", msg: "<b>Work Details 👇</b><br><b>Typing & Captcha And Form Fill Work</b><br><b>Daily Payout ₹1000-2000/Day</b><br>Without Investment! No Any Target<br>5Rs Per Captcha{200captcha/Day)<br><br><b>Eligibility 👇 Must Have 3 🆔</b><br>1:-Pan Card Number<br>2:-Adhar Link With Mobile 📱<br>3:- Bank For Salary<br><br>Interested Fill Form&Chat With Us 👇" },
     { key: "fullName", type: "input", msg: "Please Enter Your Full Name" },
-    { key: "pan", type: "input", msg: "Enter PAN Card (ABCDE1234F)", pattern: /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/i },
+    { key: "pan", type: "input", msg: "Enter Your PAN Card Number", pattern: /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/i },
     { key: "aadhar", type: "input", msg: "Enter 12-digit Aadhar Number", pattern: /^[0-9]{12}$/ },
     { key: "bankAcc", type: "input", msg: "Enter Your Bank Account Number" },
     { key: "ifsc", type: "input", msg: "Enter Your Bank IFSC Code" },
     { key: "dob", type: "date", msg: "Select Your Date of Birth" },
     { key: "gender", type: "button", msg: "Select Your Gender", options: ["Male", "Female"] },
-    { key: "mobile", type: "input", msg: "Enter Mobile Number (10 digits)", pattern: /^[6-9][0-9]{9}$/ },
+    { key: "mobile", type: "input", msg: "Enter Your Aadhar Linked Mobile Number", pattern: /^[6-9][0-9]{9}$/ },
     { key: "state", type: "input", msg: "Enter Your State" },
     { key: "telegram", type: "button", msg: "Do You Have Telegram App?", options: ["Yes", "No"] }
 ];
@@ -115,11 +119,17 @@ const chatBox = document.getElementById('chatBox'), userInput = document.getElem
 
 function getTime() { const d = new Date(); return d.getHours().toString().padStart(2,'0') + ":" + d.getMinutes().toString().padStart(2,'0'); }
 
-function appendMsg(text, type, isHtml = true, isVideo = false) {
-    const d = document.createElement('div'); d.className = `msg ${type}`;
-    if(isVideo) d.innerHTML = `<video controls style="width:100%"><source src="${text}"></video>`;
-    else d.innerHTML = text;
-    d.innerHTML += `<span class="time">${getTime()}</span>`;
+// --- LINK DETECTOR FOR MANUAL CHAT ---
+function parseText(text) {
+    let safeText = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    return safeText.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" class="chat-link">Click to Open Link</a>');
+}
+
+function appendMsg(text, type, isBotStep = false) {
+    const d = document.createElement('div');
+    d.className = `msg ${type}`;
+    let content = isBotStep ? text : parseText(text);
+    d.innerHTML = content + `<span class="time">${getTime()}</span>`;
     chatBox.appendChild(d); chatBox.scrollTop = chatBox.scrollHeight;
 }
 
@@ -129,12 +139,15 @@ window.onload = async () => {
     db.ref('status/' + userId).onDisconnect().set('offline');
 
     const chatSnap = await db.ref('chats/' + userId).once('value');
-    if(chatSnap.exists()) chatSnap.forEach(c => appendMsg(c.val().message, c.val().sender === "Admin" ? "received" : "sent", true, c.val().type==='video'));
+    if(chatSnap.exists()) chatSnap.forEach(c => appendMsg(c.val().message, c.val().sender === "Admin" ? "received" : "sent"));
 
     const leadSnap = await db.ref('leads/' + userId).once('value');
     const userData = leadSnap.val() || {};
-    if(userData.telegram) { isBotActive = false; }
-    else {
+
+    if(userData.telegram) {
+        isBotActive = false;
+        if(!chatBox.innerHTML.includes("Form Submitted")) showFinal(userData.telegram === 'Yes');
+    } else {
         let count = 0;
         for(let s of botSteps) { if(s.key && userData[s.key]) count++; else if(s.type!=="auto") break; }
         currentIdx = (count > 0) ? count + 2 : 0;
@@ -144,24 +157,25 @@ window.onload = async () => {
     db.ref('chats/' + userId).on('child_added', snap => {
         const m = snap.val();
         if(m.sender === "Admin") {
-            if(m.type === "call") { document.getElementById('callUI').style.display='flex'; waRing.play(); }
-            else if(m.type === "endcall") { document.getElementById('callUI').style.display='none'; waRing.pause(); if(localTrack) localTrack.close(); }
-            else {
-                let last = chatBox.lastElementChild;
-                if(!last || !last.innerHTML.includes(m.message)) {
-                    appendMsg(m.message, "received", true, m.type==='video'); waSound.play().catch(()=>{});
-                }
+            let last = chatBox.lastElementChild;
+            if(!last || !last.innerHTML.includes(m.message)) {
+                appendMsg(m.message, "received");
+                waSound.play().catch(()=>{});
+                document.getElementById('waPopupMsg').innerText = m.message.substring(0,30);
+                document.getElementById('waPopup').classList.add('show');
+                setTimeout(()=>document.getElementById('waPopup').classList.remove('show'), 5000);
             }
         }
     });
 };
 
 function runBot() {
-    if(currentIdx >= botSteps.length || !isBotActive || isBusy) return;
+    if(currentIdx >= botSteps.length || !isBotActive) return;
     const step = botSteps[currentIdx];
     statusText.innerText = "typing...";
     setTimeout(() => {
-        appendMsg(step.msg, "received", true); statusText.innerText = "Online";
+        appendMsg(step.msg, "received", true);
+        statusText.innerText = "Online";
         if(step.type === "auto") { currentIdx++; runBot(); }
         else setupUI(step);
     }, 600);
@@ -173,37 +187,45 @@ function setupUI(step) {
     if(step.type === "button") {
         buttonArea.innerHTML = "";
         step.options.forEach(opt => {
-            const btn = document.createElement('button'); btn.className="opt-btn"; btn.innerText=opt;
-            btn.onclick = () => handleInput(opt); buttonArea.appendChild(btn);
+            const btn = document.createElement('button'); btn.className = "opt-btn"; btn.innerText = opt;
+            btn.onclick = () => { buttonArea.style.display = "none"; handleInput(opt); };
+            buttonArea.appendChild(btn);
         });
     }
-    if(step.type === "date") userInput.oninput = () => { if(userInput.value.length >= 10) handleInput(userInput.value); };
+    if(step.type === "date") userInput.onchange = () => { if(userInput.value) handleInput(userInput.value); };
 }
 
 async function handleInput(val) {
     const step = botSteps[currentIdx];
-    if(step && step.pattern && !step.pattern.test(val.toUpperCase())) return appendMsg("❌ Invalid Format!", "received");
+    if(step && step.pattern && !step.pattern.test(val.toUpperCase())) return appendMsg("❌ Format sahi nahi hai!", "received", true);
     
-    isBusy = true;
     appendMsg(val, "sent");
     userInput.value = "";
     if(step && step.key) {
         await db.ref('leads/' + userId).update({ [step.key]: val, uid: userId });
-        await db.ref('chats/' + userId).push({ sender: "User", message: val });
+        await db.ref('chats/' + userId).push({ sender: "User", message: val, time: getTime() });
         if(step.key === "telegram") {
             isBotActive = false;
-            appendMsg("Form Submitted! Chat with agent for joining.", "received", true);
-            appendMsg(`<a href="https://t.me/workfortyping" target="_blank" class="action-btn" style="background:#0088cc">CLICK TO JOIN TELEGRAM</a>`, "received");
-            appendMsg(`<button onclick="OneSignal.showNativePrompt()" class="action-btn" style="background:#e91e63;margin-top:10px;">ALLOW OFFLINE UPDATES</button>`, "received");
-            appendMsg(`<button onclick="deferredPrompt.prompt()" class="action-btn" style="background:#444;margin-top:10px;">INSTALL MIRAE APP</button>`, "received");
+            showFinal(val === "Yes");
+            return;
         }
     }
-    currentIdx++; isBusy = false; runBot();
+    currentIdx++;
+    runBot();
+}
+
+function showFinal(isTg) {
+    appendMsg("Form Submitted! Chat With My Agent For Joining.", "received", true);
+    const card = document.createElement('div');
+    card.className = "action-card";
+    card.innerHTML = (isTg ? `<a href="https://t.me/workfortyping" target="_blank" class="action-btn" style="background:#0088cc">CLICK TO CHAT ON TELEGRAM</a>` : "") + 
+                     `<button onclick="OneSignal.showNativePrompt()" class="action-btn" style="background:#e91e63">INSTALL MIRAE UP APP</button>`;
+    chatBox.appendChild(card);
 }
 
 document.getElementById('sendBtn').onclick = () => {
     const v = userInput.value.trim();
-    if(!v || isBusy) return;
+    if(!v) return;
     if(isBotActive && currentIdx < botSteps.length && botSteps[currentIdx].type === "input") handleInput(v);
     else { appendMsg(v, "sent"); db.ref('chats/' + userId).push({ sender: "User", message: v }); }
     userInput.value = "";
@@ -213,28 +235,13 @@ async function uploadToCloud(input) {
     const file = input.files[0]; if(!file) return;
     appendMsg("⏳ Uploading Media...", "sent");
     const formData = new FormData();
-    formData.append('file', file); formData.append('upload_preset', 'mirae_preset');
+    formData.append('file', file);
+    formData.append('upload_preset', 'mirae_preset');
     const res = await fetch(`https://api.cloudinary.com/v1_1/dqw0atvkp/upload`, {method:'POST', body:formData});
     const data = await res.json();
     await db.ref('chats/' + userId).push({ sender: "User", message: data.secure_url, type: (file.type.startsWith('video') ? 'video' : 'image') });
 }
 
-document.getElementById('ansBtn').onclick = async () => {
-    waRing.pause();
-    const agoraClient = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
-    await agoraClient.join("c0d5847270c04ed6b0bb4295ab2390b9", "mirae_" + userId, null);
-    const localTrack = await AgoraRTC.createMicrophoneAudioTrack({ AEC: true, ANS: true });
-    await agoraClient.publish([localTrack]);
-    agoraClient.on("user-published", async (u, mt) => { await agoraClient.subscribe(u, mt); if (mt === "audio") u.audioTrack.play(); });
-};
-
-function hangUpLocal() {
-    db.ref('chats/' + userId).push({ sender: "User", type: "endcall", message: "Ended" });
-    document.getElementById('callUI').style.display='none';
-}
-
-let deferredPrompt;
-window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; });
 window.addEventListener('appinstalled', () => db.ref('leads/' + userId).update({ installed: "Yes" }));
 </script>
 </body>
