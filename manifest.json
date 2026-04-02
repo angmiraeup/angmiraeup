@@ -1,19 +1,13 @@
 {
   "name": "Mirae Up Support",
   "short_name": "MiraeUp",
-  "description": "Mirae Up Official Hiring and Support Application",
-  "start_url": "/index.html",
+  "start_url": "index.html",
   "display": "standalone",
-  "orientation": "portrait",
   "background_color": "#075e54",
   "theme_color": "#075e54",
-  "scope": "/",
-  "icons": [
-    {
-      "src": "https://cdn-icons-png.flaticon.com/512/3135/3135715.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
-    }
-  ]
+  "icons": [{
+    "src": "https://cdn-icons-png.flaticon.com/512/3135/3135715.png",
+    "sizes": "512x512",
+    "type": "image/png"
+  }]
 }
