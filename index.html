@@ -7,9 +7,8 @@
     <link rel="manifest" href="manifest.json">
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-messaging-compat.js"></script>
     <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
-    <script src="https://download.agora.io/sdk/release/AgoraRTC_N.js"></script>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
         * { margin:0; padding:0; box-sizing:border-box; font-family: 'Segoe UI', sans-serif; }
         html, body { height: 100dvh; width: 100%; overflow: hidden; background:#dadbd3; }
@@ -21,29 +20,26 @@
         .received { align-self: flex-start; border-top-left-radius:0; }
         .sent { background:#dcf8c6; align-self: flex-end; border-top-right-radius:0; }
         .time { font-size: 10px; color: #888; align-self: flex-end; margin-top: 4px; }
-        .msg img { width: 100%; border-radius: 8px; margin-top: 5px; cursor: pointer; }
+        .msg img, .msg video { max-width: 100%; border-radius: 8px; margin-top: 5px; }
         .blue-link { color: #0088cc !important; font-weight: bold; text-decoration: underline; word-break: break-all; }
-        
-        #callUI { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(7, 94, 84, 0.98); z-index:2000; display:none; flex-direction:column; align-items:center; justify-content:center; color:white; }
-        .call-btn-circle { width:70px; height:70px; border-radius:50%; border:none; color:white; font-size:24px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
-
         .input-wrapper { background:#f0f0f0; padding:8px 10px; display:flex; align-items:center; gap:8px; min-height: 65px; border-top:1px solid #ddd; padding-bottom: calc(10px + env(safe-area-inset-bottom)); }
         .input-container { flex:1; background: white; border-radius: 25px; display: flex; align-items: center; padding: 2px 15px; box-shadow: 0 1px 1px rgba(0,0,0,0.1); }
-        .input-container input { flex:1; border:none; outline:none; padding:10px 5px; font-size:16px; background: transparent; width: 100%; }
+        .input-container input { flex:1; border:none; outline:none; padding:12px 5px; font-size:16px; background: transparent; width: 100%; }
         button#sendBtn { background:#075e54; color:white; border:none; width:48px; height:48px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink: 0; }
-        
         .btn-row { display:none; gap:10px; justify-content:center; padding:15px; background:rgba(255,255,255,0.9); flex-wrap: wrap; border-top: 1px solid #ddd; position: absolute; bottom: 65px; width: 100%; z-index: 100; }
         .opt-btn { background:#075e54; color:white; border:none; padding:10px 20px; border-radius:25px; cursor:pointer; font-weight:bold; }
-        
-        .action-card { background: white; padding: 12px; border-radius: 12px; margin-bottom: 12px; align-self: center; width: 90%; text-align: center; border: 1px solid #ddd; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        .action-btn { display: block; background: #0088cc; color: white !important; padding: 12px; border-radius: 8px; text-decoration: none; font-weight: bold; text-align: center; margin: 8px 0; width: 100%; border:none; cursor:pointer; font-size: 14px; }
+        #callUI { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(7, 94, 84, 0.98); z-index:2000; display:none; flex-direction:column; align-items:center; justify-content:center; color:white; }
+        .action-card { background: white; padding: 12px; border-radius: 12px; margin-bottom: 12px; align-self: center; width: 90%; text-align: center; border: 1px solid #ddd; }
     </style>
 </head>
 <body>
+<audio id="waSound" src="https://assets.mixkit.co/active_storage/sfx/2357/2357-preview.mp3" preload="auto"></audio>
+<audio id="waRing" src="https://assets.mixkit.co/active_storage/sfx/1359/1359-preview.mp3" loop preload="auto"></audio>
+
 <div id="callUI">
     <img src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" width="100" style="border-radius:50%; border:3px solid white; margin-bottom:20px;">
-    <h2 id="callStatus">Support Calling...</h2>
-    <div style="display:flex; margin-top:50px; gap:30px;"><button id="ansBtn" class="call-btn-circle" style="background:#25d366;">📞</button><button onclick="hangUpLocal()" class="call-btn-circle" style="background:#ff3b30;">📵</button></div>
+    <h2 id="callStatus">Mirae Support Calling...</h2>
+    <div style="display:flex; margin-top:50px; gap:30px;"><button id="ansBtn" style="background:#25d366;width:70px;height:70px;border-radius:50%;border:none;font-size:24px;color:white;">📞</button><button onclick="hangUpLocal()" style="background:#ff3b30;width:70px;height:70px;border-radius:50%;border:none;font-size:24px;color:white;">Stat📵</button></div>
 </div>
 
 <div class="container">
@@ -51,11 +47,7 @@
     <div class="chat-box" id="chatBox"></div>
     <div id="buttonArea" class="btn-row"></div>
     <div class="input-wrapper">
-        <div class="input-container">
-            <label for="fileInp" style="cursor:pointer; font-size:22px; margin-right:10px">📎</label>
-            <input type="file" id="fileInp" style="display:none" onchange="uploadToCloud(this)">
-            <input type="text" id="userInput" placeholder="Type a message..." autocomplete="off">
-        </div>
+        <div class="input-container"><label for="fileInp" style="cursor:pointer;font-size:22px;margin-right:10px">📎</label><input type="file" id="fileInp" style="display:none" onchange="uploadToCloud(this)"><input type="text" id="userInput" placeholder="Type a message..." autocomplete="off"></div>
         <button id="sendBtn"><svg width="24" height="24" viewBox="0 0 24 24" fill="white"><path d="M2,21L23,12L2,3V10L17,12L2,14V21Z" /></svg></button>
     </div>
 </div>
@@ -64,8 +56,9 @@
 const firebaseConfig = { apiKey: "AIzaSyDw439IXSmTpustCkIQpRQ7foZ-hc8XiDQ", authDomain: "workhatapp.firebaseapp.com", databaseURL: "https://workhatapp-default-rtdb.asia-southeast1.firebasedatabase.app", projectId: "workhatapp", storageBucket: "workhatapp.appspot.com", messagingSenderId: "971559169599", appId: "1:971559169599:web:082be923ea9782440e128a" };
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
-const AGORA_ID = "c0d5847270c04ed6b0bb4295ab2390b9", userId = localStorage.getItem('chat_uid') || 'USR' + Math.floor(Math.random()*999999);
+let userId = localStorage.getItem('chat_uid') || 'USR' + Math.floor(Math.random()*999999);
 localStorage.setItem('chat_uid', userId);
+const peer = new Peer('mirae_peer_' + userId);
 
 window.OneSignalDeferred = window.OneSignalDeferred || [];
 OneSignalDeferred.push(async function(OneSignal) {
@@ -77,119 +70,106 @@ const botSteps = [
     { key: "welcome", type: "auto", msg: "Welcome 🤗 To Ang Mirae Up Work From Home" },
     { key: "details", type: "auto", msg: "<b>Work Details 👇</b><br><b>Typing & Captcha And Form Fill Work</b><br><b>Daily Payout ₹1000-2000/Day</b><br>Without Investment! No Any Target<br>5Rs Per Captcha{200captcha/Day)<br><br><b>Eligibility 👇 Must Have 3 🆔</b><br>1:-Pan Card Number<br>2:-Adhar Link With Mobile 📱<br>3:- Bank For Salary<br><br>Interested Fill Form&Chat With Us 👇" },
     { key: "fullName", type: "input", msg: "Please Enter Your Full Name" },
-    { key: "pan", type: "input", msg: "Enter Your PAN Card Number", pattern: /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/i },
-    { key: "aadhar", type: "input", msg: "Enter Your 12-digit Aadhar Number", pattern: /^[0-9]{12}$/ },
-    { key: "bankAcc", type: "input", msg: "Enter Your Bank Account Number" },
-    { key: "ifsc", type: "input", msg: "Enter Your Bank IFSC Code" },
+    { key: "pan", type: "input", msg: "Enter PAN Card (ABCDE1234F)", pattern: /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/i },
+    { key: "aadhar", type: "input", msg: "Enter 12-digit Aadhar Number", pattern: /^[0-9]{12}$/ },
+    { key: "bankAcc", type: "input", msg: "Enter Bank Account Number" },
+    { key: "ifsc", type: "input", msg: "Enter Bank IFSC (ABCD0123456)", pattern: /^[A-Z]{4}0[A-Z0-9]{6}$/i },
     { key: "dob", type: "date", msg: "Select Your Date of Birth" },
-    { key: "gender", type: "button", msg: "Select Your Gender", options: ["Male", "Female"] },
-    { key: "mobile", type: "input", msg: "Enter Your Aadhar Linked Mobile Number", pattern: /^[6-9][0-9]{9}$/ },
+    { key: "mobile", type: "input", msg: "Enter Aadhaar Linked Mobile Number", pattern: /^[6-9][0-9]{9}$/ },
     { key: "state", type: "input", msg: "Enter Your State" },
     { key: "telegram", type: "button", msg: "Do You Have Telegram App?", options: ["Yes", "No"] }
 ];
 
-let currentIdx = 0, isBotActive = true, agoraClient, localTrack;
+let currentIdx = 0, isBotActive = true, isBusy = false, currentCall;
+const chatBox = document.getElementById('chatBox'), userInput = document.getElementById('userInput'), buttonArea = document.getElementById('buttonArea'), statusText = document.getElementById('status');
 
 function getTime() { const d = new Date(); return d.getHours().toString().padStart(2,'0') + ":" + d.getMinutes().toString().padStart(2,'0'); }
 
 function parseText(text) {
     if (text.includes("<a") || text.includes("<button")) return text;
-    let safeText = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-    const urlPattern = /(https?:\/\/[^\s]+)/g;
-    return safeText.replace(urlPattern, '<a href="$1" target="_blank" class="blue-link">Click to Open Link</a>');
+    return text.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" class="blue-link">Click to Open Link</a>');
 }
 
 function appendMsg(m, type, isHtml = false) {
     const d = document.createElement('div'); d.className = `msg ${type}`;
-    if(m.message && m.message.includes("res.cloudinary.com")) d.innerHTML = `<img src="${m.message}" onclick="window.open('${m.message}')">`;
-    else d.innerHTML = isHtml ? m.message : parseText(m.message);
+    let content = m.message;
+    if(content && content.includes("res.cloudinary.com")) d.innerHTML = `<img src="${content}" onclick="window.open('${content}')">`;
+    else d.innerHTML = isHtml ? content : parseText(content);
     d.innerHTML += `<span class="time">${getTime()}</span>`;
-    document.getElementById('chatBox').appendChild(d);
-    document.getElementById('chatBox').scrollTop = document.getElementById('chatBox').scrollHeight;
+    chatBox.appendChild(d); chatBox.scrollTop = chatBox.scrollHeight;
 }
 
 window.onload = async () => {
-    if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
-    db.ref('status/' + userId).set('online');
-    db.ref('status/' + userId).onDisconnect().set('offline');
-
-    const chatSnap = await db.ref('chats/' + userId).once('value');
-    if(chatSnap.exists()) chatSnap.forEach(c => appendMsg(c.val(), c.val().sender === "Admin" ? "received" : "sent", true));
-
+    navigator.serviceWorker.register('sw.js');
     const leadSnap = await db.ref('leads/' + userId).once('value');
     const userData = leadSnap.val() || {};
-    if(userData.telegram) { isBotActive = false; showCompletion(); }
+    const chatSnap = await db.ref('chats/' + userId).once('value');
+    if(chatSnap.exists()) chatSnap.forEach(c => appendMsg(c.val(), c.val().sender === "Admin" ? "received" : "sent", true));
+    if(userData.telegram) isBotActive = false;
     else {
         let count = 0;
         for(let s of botSteps) { if(s.key && userData[s.key]) count++; else if(s.type!=="auto") break; }
         currentIdx = (count > 0) ? count + 2 : 0; runBot();
     }
-    
     db.ref('chats/' + userId).on('child_added', snap => {
         const m = snap.val();
-        if(m.sender === "Admin") {
-            if(m.type === "call") document.getElementById('callUI').style.display='flex';
-            else if(m.type === "endcall") hideCallUI();
-            else appendMsg(m, "received");
+        if(m.sender === "Admin" && !chatBox.innerHTML.includes(m.message)) {
+            if(m.type === "call") { document.getElementById('callUI').style.display='flex'; document.getElementById('waRing').play(); }
+            else { appendMsg(m, "received"); document.getElementById('waSound').play().catch(()=>{}); }
         }
     });
 };
 
 function runBot() {
-    if(currentIdx >= botSteps.length || !isBotActive) return;
+    if(currentIdx >= botSteps.length || !isBotActive || isBusy) return;
     const step = botSteps[currentIdx];
+    statusText.innerText = "typing...";
     setTimeout(() => {
-        appendMsg({message: step.msg}, "received", true);
-        if(step.type === "auto") { currentIdx++; runBot(); }
-        else setupUI(step);
+        appendMsg({message: step.msg}, "received", true); statusText.innerText = "Online";
+        if(step.type === "auto") { currentIdx++; runBot(); } else setupUI(step);
     }, 600);
 }
 
 function setupUI(step) {
-    document.getElementById('buttonArea').style.display = step.type === "button" ? "flex" : "none";
-    document.getElementById('userInput').type = step.type === "date" ? "date" : "text";
+    buttonArea.style.display = step.type === "button" ? "flex" : "none";
+    userInput.type = step.type === "date" ? "date" : "text";
     if(step.type === "button") {
-        document.getElementById('buttonArea').innerHTML = "";
+        buttonArea.innerHTML = "";
         step.options.forEach(opt => {
             const btn = document.createElement('button'); btn.className="opt-btn"; btn.innerText=opt;
-            btn.onclick = () => { document.getElementById('buttonArea').style.display="none"; handleInput(opt); };
-            document.getElementById('buttonArea').appendChild(btn);
+            btn.onclick = () => handleInput(opt); buttonArea.appendChild(btn);
         });
     }
+    if(step.type === "date") userInput.onchange = () => { if(userInput.value) handleInput(userInput.value); };
 }
 
 async function handleInput(val) {
     const step = botSteps[currentIdx];
-    if(step && step.pattern && !step.pattern.test(val.toUpperCase())) return appendMsg({message: "❌ Invalid format!"}, "received");
-    appendMsg({message: val}, "sent");
-    if(step && step.key) {
+    if(step.pattern && !step.pattern.test(val.toUpperCase())) return appendMsg({message: "❌ Invalid Format!"}, "received");
+    isBusy = true; appendMsg({message: val}, "sent"); userInput.value = "";
+    if(step.key) {
         await db.ref('leads/' + userId).update({ [step.key]: val, uid: userId });
         await db.ref('chats/' + userId).push({ sender: "User", message: val });
-        if(step.key === "telegram") { isBotActive = false; showCompletion(); }
+        if(step.key === "telegram") {
+            isBotActive = false;
+            appendMsg({message: "Form Submitted! Chat with agent."}, "received");
+            appendMsg({message: `<a href="https://t.me/workfortyping" target="_blank" class="action-btn" style="background:#0088cc">CLICK TO CHAT ON TELEGRAM</a><button onclick="deferredPrompt.prompt()" class="action-btn" style="background:#e91e63">INSTALL MIRAE UP APP</button>`}, "received");
+        }
     }
-    currentIdx++; runBot();
-}
-
-function showCompletion() {
-    if(chatBox.innerHTML.includes("Form Submitted")) return;
-    appendMsg({message: "Form Submitted! Chat With My Agent For Joining."}, "received", true);
-    const card = document.createElement('div'); card.className = "action-card";
-    card.innerHTML = `<a href="https://t.me/workfortyping" target="_blank" class="action-btn">CLICK TO CHAT ON TELEGRAM</a>
-                     <button onclick="OneSignal.showNativePrompt()" class="action-btn" style="background:#e91e63">ALLOW NOTIFICATIONS & INSTALL</button>`;
-    document.getElementById('chatBox').appendChild(card);
+    currentIdx++; isBusy = false; runBot();
 }
 
 document.getElementById('sendBtn').onclick = () => {
-    const v = document.getElementById('userInput').value.trim();
-    if(!v) return;
+    const v = userInput.value.trim();
+    if(!v || isBusy) return;
     if(isBotActive && currentIdx < botSteps.length && botSteps[currentIdx].type === "input") handleInput(v);
     else { appendMsg({message:v}, "sent"); db.ref('chats/' + userId).push({ sender: "User", message: v }); }
-    document.getElementById('userInput').value = "";
+    userInput.value = "";
 };
 
 async function uploadToCloud(input) {
     const file = input.files[0]; if(!file) return;
-    appendMsg({message: "⏳ Uploading Media..."}, "sent");
+    appendMsg({message: "⏳ Uploading..."}, "sent");
     const formData = new FormData();
     formData.append('file', file); formData.append('upload_preset', 'mirae_preset');
     const res = await fetch(`https://api.cloudinary.com/v1_1/dqw0atvkp/upload`, {method:'POST', body:formData});
@@ -197,36 +177,17 @@ async function uploadToCloud(input) {
     await db.ref('chats/' + userId).push({ sender: "User", message: data.secure_url });
 }
 
+document.getElementById('ansBtn').onclick = () => {
+    document.getElementById('waRing').pause();
+    navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+        peer.on('call', call => { currentCall = call; call.answer(stream); call.on('stream', s => { const a = new Audio(); a.srcObject = s; a.play(); }); });
+    });
+};
+
+function hangUpLocal() { document.getElementById('callUI').style.display='none'; if(currentCall) currentCall.close(); db.ref('chats/' + userId).push({ sender: "User", type: "endcall", message: "Ended" }); }
+
 let deferredPrompt;
 window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; });
 </script>
-// index.html ke script mein niche yeh logic check karein
-let deferredPrompt;
-
-// 1. Browser se install prompt pakadna
-window.addEventListener('beforeinstallprompt', (e) => {
-    e.preventDefault();
-    deferredPrompt = e;
-    console.log("Install Prompt Ready ✅");
-});
-
-// 2. Button par click karne wala asli function
-function triggerInstallPrompt() {
-    if (deferredPrompt) {
-        deferredPrompt.prompt();
-        deferredPrompt.userChoice.then((choiceResult) => {
-            if (choiceResult.outcome === 'accepted') {
-                console.log('User installed the app');
-                // Admin ko batane ke liye
-                db.ref('leads/' + userId).update({ installed: "Yes" });
-            }
-            deferredPrompt = null;
-        });
-    } else {
-        // Agar browser ne abhi prompt nahi diya, toh usey batao kaise karna hai
-        alert("To Install: Click on the 3 dots (⋮) in your browser menu and select 'Install App' or 'Add to Home Screen'.");
-    }
-}
-    
 </body>
 </html>
