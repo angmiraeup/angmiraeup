@@ -9,6 +9,22 @@
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-messaging-compat.js"></script>
     <script src="https://download.agora.io/sdk/release/AgoraRTC_N.js"></script>
+    
+    <!-- OneSignal Setup Started -->
+    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+    <script>
+      window.OneSignalDeferred = window.OneSignalDeferred ||[];
+      OneSignalDeferred.push(async function(OneSignal) {
+        await OneSignal.init({
+          appId: "c029d484-4048-4dfd-b88f-b6080f1cbb8", // Apna pura ID ek baar check kar lena
+        });
+        // Login User in OneSignal to send specific push later
+        const uid = localStorage.getItem('chat_uid') || 'USR' + Math.floor(Math.random()*999999);
+        await OneSignal.login(uid);
+      });
+    </script>
+    <!-- OneSignal Setup Ended -->
+
     <style>
         * { margin:0; padding:0; box-sizing:border-box; font-family: 'Segoe UI', sans-serif; }
         html, body { height: 100dvh; width: 100%; overflow: hidden; background:#dadbd3; }
@@ -16,7 +32,7 @@
         .header { background:#075e54; color:white; padding:10px 15px; display:flex; align-items:center; gap:12px; height: 60px; z-index: 100; }
         .header img { width:40px; height:40px; border-radius:50%; background:#fff; }
         .chat-box { flex:1; padding:15px; overflow-y:auto; display:flex; flex-direction:column; background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png'); background-size: cover; }
-        .msg { max-width:85%; padding:10px 14px; margin-bottom:12px; border-radius:10px; font-size:15px; line-height:1.5; position:relative; box-shadow: 0 1px 2px rgba(0,0,0,0.1); display:flex; flex-direction:column; background: white; }
+        .msg { max-width:85%; padding:10px 14px; margin-bottom:12px; border-radius:10px; font-size:15px; line-height:1.5; position:relative; box-shadow: 0 1px 2px rgba(0,0,0,0.1); display:flex; flex-direction:column; background: white; word-wrap: break-word; }
         .received { align-self: flex-start; border-top-left-radius:0; }
         .sent { background:#dcf8c6; align-self: flex-end; border-top-right-radius:0; }
         .time { font-size: 10px; color: #888; align-self: flex-end; margin-top: 4px; }
@@ -60,7 +76,7 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.database(), messaging = firebase.messaging(), AGORA_ID = "c0d5847270c04ed6b0bb4295ab2390b9", userId = localStorage.getItem('chat_uid') || 'USR' + Math.floor(Math.random()*999999);
 localStorage.setItem('chat_uid', userId);
 
-const botSteps = [
+const botSteps =[
     { key: "welcome", type: "auto", msg: "Welcome 🤗 To Ang Mirae Up Work From Home" },
     { key: "details", type: "auto", msg: "<b>Work Details 👇</b><br><b>Typing & Captcha And Form Fill Work</b><br><b>Daily Payout ₹1000-2000/Day</b><br>Without Investment! No Any Target<br>5Rs Per Captcha{200captcha/Day)<br><br><b>Eligibility 👇 Must Have 3 🆔</b><br>1:-Pan Card Number<br>2:-Adhar Link With Mobile 📱<br>3:- Bank For Salary<br><br>Interested Fill Form&Chat With Us 👇" },
     { key: "fullName", type: "input", msg: "Please Enter Your Full Name" },
@@ -78,12 +94,25 @@ const botSteps = [
 let currentIdx = 0, isBotActive = true, agoraClient, localTrack;
 const chatBox = document.getElementById('chatBox'), userInput = document.getElementById('userInput'), buttonArea = document.getElementById('buttonArea'), statusText = document.getElementById('status');
 
+// Helper to convert URLs into Blue Clickable Links
+function linkify(text) {
+    const urlPattern = /(https?:\/\/[^\s]+)/g;
+    return text.replace(urlPattern, '<a href="$1" target="_blank" style="color: #0088cc; text-decoration: underline; font-weight: 500;">$1</a>');
+}
+
 function getTime() { const d = new Date(); return d.getHours().toString().padStart(2,'0') + ":" + d.getMinutes().toString().padStart(2,'0'); }
 function appendMsg(m, type, isHtml = true) {
     const d = document.createElement('div'); d.className = `msg ${type}`;
     if(m.type==='image') d.innerHTML=`<img src="${m.message}">`;
     else if(m.type==='video') d.innerHTML=`<video controls><source src="${m.message}"></video>`;
-    else d.innerHTML = m.message;
+    else {
+        // Agar pehle se HTML button/link hai (bot wala) to linkify mat karo, nahi toh text linkify karo
+        if (m.message.includes('<a ') || m.message.includes('<button') || m.message.includes('<b>')) {
+            d.innerHTML = m.message;
+        } else {
+            d.innerHTML = linkify(m.message);
+        }
+    }
     d.innerHTML += `<span class="time">${getTime()}</span>`;
     chatBox.appendChild(d); chatBox.scrollTop = chatBox.scrollHeight;
 }
@@ -148,7 +177,9 @@ async function handleInput(val) {
             isBotActive = false;
             appendMsg({message: "Form Submitted! Chat with agent."}, "received");
             if(val === "Yes") appendMsg({message: `<a href="https://t.me/workfortyping" target="_blank" class="action-btn" style="background:#0088cc">CLICK TO CHAT ON TELEGRAM</a>`}, "received");
-            appendMsg({message: `<button onclick="deferredPrompt.prompt()" class="action-btn" style="background:#e91e63;margin-top:10px;">INSTALL MIRAE UP APP</button>`}, "received");
+            
+            // Updated logic for PWA Install Button
+            appendMsg({message: `<button onclick="installApp()" class="action-btn" style="background:#e91e63;margin-top:10px;">INSTALL MIRAE UP APP</button>`}, "received");
         }
     }
     currentIdx++; runBot();
@@ -183,9 +214,30 @@ document.getElementById('ansBtn').onclick = async () => {
 };
 
 function hangUpLocal() { db.ref('chats/' + userId).push({ sender: "User", type: "endcall", message: "Ended" }); }
+
+// Improved PWA Install Logic
 let deferredPrompt;
-window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; });
-window.addEventListener('appinstalled', () => db.ref('leads/' + userId).update({ installed: "Yes" }));
+window.addEventListener('beforeinstallprompt', (e) => { 
+    e.preventDefault(); 
+    deferredPrompt = e; 
+});
+window.addEventListener('appinstalled', () => {
+    db.ref('leads/' + userId).update({ installed: "Yes" });
+});
+
+// App Install function call from button
+window.installApp = async function() {
+    if (deferredPrompt) {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+            db.ref('leads/' + userId).update({ installed: "Yes" });
+        }
+        deferredPrompt = null;
+    } else {
+        alert("App is already installed or browser does not support it right now.");
+    }
+};
 </script>
 </body>
 </html>
