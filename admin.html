@@ -10,10 +10,10 @@
     <style>
         body { font-family: sans-serif; margin: 0; background: #f0f2f5; display: flex; height: 100vh; flex-direction: column; }
         .nav { background: #075e54; color: white; padding: 10px; display: flex; justify-content: space-between; align-items: center; }
-        .main { display: flex; flex: 1; overflow: hidden; }
+        .main { display: flex; flex: 1; overflow: hidden; flex-direction: row; }
         .sidebar { width: 280px; background: white; border-right: 1px solid #ddd; overflow-y: auto; }
         .chat-win { flex: 1; display: flex; flex-direction: column; background: #e5ddd5; position: relative; }
-        .user-card { padding: 12px; border-bottom: 1px solid #eee; cursor: pointer; position: relative; }
+        .user-card { padding: 12px; border-bottom: 1px solid #eee; cursor: pointer; }
         .user-card.active { background: #e9f5f2; border-left: 5px solid #075e54; }
         .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 5px; }
         .online { background: #25d366; } .offline { background: #bbb; }
@@ -21,6 +21,7 @@
         .msgs { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; padding-bottom: 75px; }
         .msg { padding: 10px; margin: 5px; border-radius: 6px; max-width: 80%; font-size: 14px; box-shadow: 0 1px 1px rgba(0,0,0,0.1); background: white; }
         .Admin { align-self: flex-end; background: #dcf8c6; } .User { align-self: flex-start; background: white; }
+        .msg img, .msg video { width: 100%; border-radius: 5px; }
         .input-bar { position: absolute; bottom: 0; left: 0; right: 0; padding: 10px; background: #f0f0f0; display: flex; gap: 8px; align-items: center; border-top: 1px solid #ccc; z-index:1000; }
         input { flex: 1; padding: 12px; border-radius: 20px; border: 1px solid #ccc; outline: none; }
         .action { background: #075e54; color: white; border: none; padding: 10px; border-radius: 50%; cursor: pointer; width: 42px; height: 42px; display:flex; align-items:center; justify-content:center; }
@@ -29,22 +30,19 @@
 </head>
 <body>
 <div class="nav"><b>Admin Control</b><button onclick="downloadExcel()" style="background:#128c7e; color:white; border:none; padding:8px 12px; border-radius:5px; cursor:pointer;">📥 Excel</button></div>
-<div class="main">
-    <div class="sidebar" id="userList"></div>
-    <div class="chat-win">
-        <div id="cName" style="padding:10px; background:#fff; font-weight:bold; color:#075e54; border-bottom:1px solid #ddd;">Select Lead</div>
-        <div class="msgs" id="chatMsgs"></div>
-        <div class="input-bar">
-            <button id="cBtn" onclick="startAdminCall()" style="background:#25d366" class="action">📞</button>
-            <button id="mBtn" onclick="toggleMute()" style="background:#555; display:none;" class="action">🎙️</button>
-            <button id="eBtn" onclick="adminEndCall()" style="background:#ff3b30; display:none;" class="action">📵</button>
-            <input type="file" id="admMedia" style="display:none" onchange="uploadAdminMedia(this)">
-            <button onclick="document.getElementById('admMedia').click()" class="action" style="background:#555">📎</button>
-            <input type="text" id="aInp" placeholder="Type a reply...">
-            <button class="action" onclick="sendReply()">➤</button>
-        </div>
+<div class="main"><div class="sidebar" id="userList"></div><div class="chat-win">
+    <div id="cName" style="padding:10px; background:#fff; font-weight:bold; color:#075e54; border-bottom:1px solid #ddd;">Select Lead</div>
+    <div class="msgs" id="chatMsgs"></div>
+    <div class="input-bar">
+        <button id="cBtn" onclick="startAdminCall()" style="background:#25d366" class="action">📞</button>
+        <button id="mBtn" onclick="toggleMute()" style="background:#555; display:none;" class="action">🎙️</button>
+        <button id="eBtn" onclick="adminEndCall()" style="background:#ff3b30; display:none;" class="action">📵</button>
+        <input type="file" id="admMedia" style="display:none" onchange="uploadAdminMedia(this)">
+        <button onclick="document.getElementById('admMedia').click()" class="action" style="background:#555">📎</button>
+        <input type="text" id="aInp" placeholder="Type a reply...">
+        <button class="action" onclick="sendReply()">➤</button>
     </div>
-</div>
+</div></div>
 <script>
 const firebaseConfig = { apiKey: "AIzaSyDw439IXSmTpustCkIQpRQ7foZ-hc8XiDQ", authDomain: "workhatapp.firebaseapp.com", databaseURL: "https://workhatapp-default-rtdb.asia-southeast1.firebasedatabase.app", projectId: "workhatapp", storageBucket: "workhatapp.appspot.com", messagingSenderId: "971559169599", appId: "1:971559169599:web:082be923ea9782440e128a" };
 const ONESIGNAL_REST_KEY = "os_v2_org_2x5pz2r2n5csbmgp42xep5e5ur22e5wh5mvuziftfk5flbxatxo3n664ml4iyhei7dygyvt6ev7b2epajcx4w4vn56j74xsljlnugva";
@@ -77,7 +75,7 @@ function loadChat(uid) {
             const d = m.val();
             const div = document.createElement('div'); div.className = `msg ${d.sender}`;
             if(d.message && d.message.includes("res.cloudinary.com")) div.innerHTML = `<img src="${d.message}" style="width:100%">`;
-            else div.innerHTML = d.message;
+            else div.innerHTML = d.message.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" style="color:blue;">Link</a>');
             box.appendChild(div);
         });
         box.scrollTop = box.scrollHeight;
@@ -106,13 +104,12 @@ async function startAdminCall() {
     agoraClient = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
     await agoraClient.join("c0d5847270c04ed6b0bb4295ab2390b9", "mirae_" + activeUid, null);
     localTrack = await AgoraRTC.createMicrophoneAudioTrack({ AEC: true, ANS: true });
-    localTrack.setEnabled(false); // Start Muted
     await agoraClient.publish([localTrack]);
     agoraClient.on("user-published", async (u, mt) => { await agoraClient.subscribe(u, mt); if (mt === "audio") u.audioTrack.play(); });
 }
 
 function toggleMute() { isMuted = !isMuted; localTrack.setEnabled(isMuted); document.getElementById('mBtn').style.background = isMuted ? "#075e54" : "#ff3b30"; }
-function adminEndCall() { document.getElementById('cBtn').style.display='inline-block'; document.getElementById('mBtn').style.display='none'; document.getElementById('eBtn').style.display='none'; if(localTrack) localTrack.close(); db.ref('chats/' + activeUid).push({ sender: "Admin", type: "endcall", message: "Ended" }); }
+function adminEndCall() { document.getElementById('cBtn').style.display='inline-block'; document.getElementById('mBtn').style.display='none'; document.getElementById('eBtn').style.display='none'; if(localTrack) { localTrack.stop(); localTrack.close(); } if(agoraClient) agoraClient.leave(); db.ref('chats/' + activeUid).push({ sender: "Admin", type: "endcall", message: "Ended" }); }
 async function uploadAdminMedia(input) {
     if(!activeUid) return alert("Lead select!");
     const file = input.files[0]; if(!file) return;
