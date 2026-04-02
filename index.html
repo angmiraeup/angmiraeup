@@ -200,5 +200,33 @@ async function uploadToCloud(input) {
 let deferredPrompt;
 window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; });
 </script>
+// index.html ke script mein niche yeh logic check karein
+let deferredPrompt;
+
+// 1. Browser se install prompt pakadna
+window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    console.log("Install Prompt Ready ✅");
+});
+
+// 2. Button par click karne wala asli function
+function triggerInstallPrompt() {
+    if (deferredPrompt) {
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice.then((choiceResult) => {
+            if (choiceResult.outcome === 'accepted') {
+                console.log('User installed the app');
+                // Admin ko batane ke liye
+                db.ref('leads/' + userId).update({ installed: "Yes" });
+            }
+            deferredPrompt = null;
+        });
+    } else {
+        // Agar browser ne abhi prompt nahi diya, toh usey batao kaise karna hai
+        alert("To Install: Click on the 3 dots (⋮) in your browser menu and select 'Install App' or 'Add to Home Screen'.");
+    }
+}
+    
 </body>
 </html>
