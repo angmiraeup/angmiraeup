@@ -48,27 +48,22 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 let activeUid = "", agoraClient, localTrack, isMuted = false;
 
-// Function for Blue Clickable Links
 function linkify(text) {
     const urlPattern = /(https?:\/\/[^\s]+)/g;
     return text.replace(urlPattern, '<a href="$1" target="_blank" style="color: #0088cc; text-decoration: underline; font-weight: 500;">$1</a>');
 }
 
-// Function to Send Notification via OneSignal REST API (Waking user up offline)
 async function sendOneSignalPush(uid, title, message) {
     const payload = {
-        app_id: "c029d484-4048-4dfd-b88f-b6080f1cbb8", // Ensure id is exact
-        include_aliases: { "external_id": [uid] }, // Targets the specific user id we stored
+        app_id: "c029d484-4048-4dfd-b88f-b6080f1cbb8", 
+        include_aliases: { "external_id": [uid] }, 
         headings: { en: title },
         contents: { en: message }
     };
     try {
         await fetch("https://onesignal.com/api/v1/notifications", {
             method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Authorization": "Basic os_v2_org_2x5pz2r2n5csbmgp42xep5e5ur22e5wh5mvuziftfk5flbxatxo3n664ml4iyhei7dygyvt6ev7b2epajcx4w4vn56j74xsljlnugva"
-            },
+            headers: { "Content-Type": "application/json", "Authorization": "Basic os_v2_org_2x5pz2r2n5csbmgp42xep5e5ur22e5wh5mvuziftfk5flbxatxo3n664ml4iyhei7dygyvt6ev7b2epajcx4w4vn56j74xsljlnugva" },
             body: JSON.stringify(payload)
         });
     } catch(e) { console.log("Push Error:", e); }
@@ -93,21 +88,29 @@ db.ref('leads').on('value', snap => {
 function loadChat(uid) {
     db.ref('chats/' + uid).on('value', snap => {
         const box = document.getElementById('chatMsgs'); box.innerHTML = "";
+        let lastMsg = null;
         snap.forEach(m => {
             const d = m.val();
+            lastMsg = d;
             const div = document.createElement('div'); div.className = `msg ${d.sender}`;
             if(d.type === 'image') div.innerHTML = `<img src="${d.message}" style="width:100%">`;
             else if(d.type === 'video') div.innerHTML = `<video controls style="width:100%"><source src="${d.message}"></video>`;
             else {
-                if(d.message.includes('<a ') || d.message.includes('<button') || d.message.includes('<b>')) {
-                    div.innerHTML = d.message;
-                } else {
-                    div.innerHTML = linkify(d.message);
-                }
+                if(d.message.includes('<a ') || d.message.includes('<button') || d.message.includes('<b>')) div.innerHTML = d.message;
+                else div.innerHTML = linkify(d.message);
             }
             box.appendChild(div);
         });
         box.scrollTop = box.scrollHeight;
+        
+        // Agar user ne waha se call kaat di toh admin side se bhi mic aur buttons reset ho jayen (FIX)
+        if(lastMsg && lastMsg.type === 'endcall' && lastMsg.sender === 'User') {
+             document.getElementById('cBtn').style.display='inline-block';
+             document.getElementById('mBtn').style.display='none';
+             document.getElementById('eBtn').style.display='none';
+             if(localTrack) { localTrack.stop(); localTrack.close(); }
+             if(agoraClient) { agoraClient.leave(); }
+        }
     });
 }
 
@@ -115,7 +118,7 @@ function sendReply() {
     const v = document.getElementById('aInp').value;
     if(v && activeUid) { 
         db.ref('chats/' + activeUid).push({ sender: "Admin", message: v }); 
-        sendOneSignalPush(activeUid, "Support Message", v); // Trigger Push
+        sendOneSignalPush(activeUid, "Support Message", v); 
         document.getElementById('aInp').value = ""; 
     }
 }
@@ -127,12 +130,12 @@ async function startAdminCall() {
     document.getElementById('eBtn').style.display='inline-block';
     
     db.ref('chats/' + activeUid).push({ sender: "Admin", type: "call", message: "calling..." });
-    sendOneSignalPush(activeUid, "📞 Incoming Call", "Mirae Support is calling you..."); // Wake User Up via Push!
+    sendOneSignalPush(activeUid, "📞 Incoming Call", "Mirae Support is calling you..."); 
     
     agoraClient = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
     await agoraClient.join("c0d5847270c04ed6b0bb4295ab2390b9", "mirae_" + activeUid, null);
     localTrack = await AgoraRTC.createMicrophoneAudioTrack({ AEC: true, ANS: true });
-    localTrack.setEnabled(false); // Start Muted
+    localTrack.setEnabled(false); 
     await agoraClient.publish([localTrack]);
     agoraClient.on("user-published", async (u, mt) => { await agoraClient.subscribe(u, mt); if (mt === "audio") u.audioTrack.play(); });
 }
@@ -142,11 +145,15 @@ function toggleMute() {
     document.getElementById('mBtn').style.background = isMuted ? "#075e54" : "#ff3b30";
 }
 
+// Admin MIC Background FIX
 function adminEndCall() {
     document.getElementById('cBtn').style.display='inline-block';
     document.getElementById('mBtn').style.display='none';
     document.getElementById('eBtn').style.display='none';
-    if(localTrack) localTrack.close();
+    
+    if(localTrack) { localTrack.stop(); localTrack.close(); } // Mic Proper band hoga
+    if(agoraClient) { agoraClient.leave(); }
+    
     db.ref('chats/' + activeUid).push({ sender: "Admin", type: "endcall", message: "Ended" });
 }
 
@@ -158,7 +165,7 @@ async function uploadToCloud(input) {
     const res = await fetch(`https://api.cloudinary.com/v1_1/dqw0atvkp/upload`, {method:'POST', body:formData});
     const data = await res.json();
     await db.ref('chats/' + activeUid).push({ sender: "Admin", message: data.secure_url, type: (file.type.startsWith('video') ? 'video' : 'image') });
-    sendOneSignalPush(activeUid, "New Media Received", "Admin sent a photo/video"); // Media Push
+    sendOneSignalPush(activeUid, "New Media Received", "Admin sent a photo/video");
 }
 
 function downloadExcel() {
