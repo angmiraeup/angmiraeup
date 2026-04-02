@@ -1,9 +1,20 @@
 {
   "name": "Mirae Up Support",
   "short_name": "MiraeUp",
-  "start_url": "index.html",
+  "description": "Mirae Up Work From Home Support System",
+  "start_url": "/index.html",
   "display": "standalone",
+  "orientation": "portrait",
   "background_color": "#075e54",
   "theme_color": "#075e54",
-  "icons": [{"src": "https://cdn-icons-png.flaticon.com/512/3135/3135715.png","sizes": "512x512","type": "image/png"}]
+  "scope": "/",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/3135/3135715.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "prefer_related_applications": false
 }
