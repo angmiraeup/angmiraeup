@@ -3,19 +3,20 @@
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Mirae Pro</title>
-    <!-- Isko bhi app banane ke liye manifest joda gaya -->
     <link rel="manifest" href="manifest.json">
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-messaging-compat.js"></script>
     <script src="https://download.agora.io/sdk/release/AgoraRTC_N.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         body { font-family: sans-serif; margin: 0; background: #f0f2f5; display: flex; height: 100vh; flex-direction: column; }
         .nav { background: #075e54; color: white; padding: 12px; display: flex; justify-content: space-between; align-items: center; }
         .main { display: flex; flex: 1; overflow: hidden; flex-direction: row; }
         .sidebar { width: 280px; background: white; border-right: 1px solid #ddd; overflow-y: auto; }
         .chat-win { flex: 1; display: flex; flex-direction: column; background: #e5ddd5; position: relative; }
-        .user-card { padding: 12px; border-bottom: 1px solid #eee; cursor: pointer; }
+        .user-card { padding: 12px; border-bottom: 1px solid #eee; cursor: pointer; transition: background 0.3s; }
+        .user-card:hover { background: #f5f5f5; }
         .user-card.active { background: #e9f5f2; border-left: 5px solid #075e54; }
         .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 5px; }
         .online { background: #25d366; } .offline { background: #bbb; }
@@ -33,15 +34,16 @@
         #replyPreview .close-btn { position: absolute; top: 5px; right: 10px; cursor: pointer; font-weight: bold; font-size: 18px; color: #888; }
         .quoted-msg { background: rgba(0,0,0,0.05); border-left: 4px solid #075e54; padding: 6px 10px; margin-bottom: 5px; border-radius: 4px; font-size: 13px; color: #555; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; opacity: 0.9; }
         
-        .alert-btn { background: #ff9800; color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer; font-size: 12px; font-weight: bold; margin-right: 10px;}
+        .alert-btn { background: #ff9800; color: white; border: none; padding: 6px 12px; border-radius: 5px; cursor: pointer; font-size: 12px; font-weight: bold; margin-right: 10px;}
+        .excel-btn { background: #128c7e; color: white; border: none; padding: 6px 12px; border-radius: 5px; cursor: pointer; font-size: 12px; font-weight: bold;}
     </style>
 </head>
 <body>
 <div class="nav">
     <b>Admin Control</b>
     <div>
-        <!-- 🔥 ADMIN NOTIFICATION BUTTON 🔥 -->
         <button class="alert-btn" id="adminNotifBtn" onclick="enableAdminPush()">🔔 Enable Alerts</button>
+        <button class="excel-btn" onclick="downloadExcel()">📥 Excel</button>
     </div>
 </div>
 <div class="main"><div class="sidebar" id="userList"></div><div class="chat-win">
@@ -68,9 +70,9 @@
 const firebaseConfig = { apiKey: "AIzaSyDw439IXSmTpustCkIQpRQ7foZ-hc8XiDQ", authDomain: "workhatapp.firebaseapp.com", databaseURL: "https://workhatapp-default-rtdb.asia-southeast1.firebasedatabase.app", projectId: "workhatapp", storageBucket: "workhatapp.appspot.com", messagingSenderId: "971559169599", appId: "1:971559169599:web:082be923ea9782440e128a" };
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database(), messaging = firebase.messaging();
-let activeUid = "", agoraClient, localTrack, isMuted = false, replyingToMsg = null;
+let activeUid = "", agoraClient, localTrack, isMuted = false, replyingToMsg = null, allLeadsData = [];
 
-// 🔥 ADMIN PUSH SETUP 🔥
+// 🔥 ADMIN PUSH SETUP
 async function enableAdminPush() {
     try {
         const perm = await Notification.requestPermission();
@@ -80,21 +82,22 @@ async function enableAdminPush() {
             if(token) {
                 db.ref('adminConfig').set({ fcm_token: token });
                 document.getElementById('adminNotifBtn').style.display = 'none';
-                alert("✅ Admin Alerts On! Ab jab bhi koi naya message aayega, aapko notification milega.");
+                alert("✅ Admin Alerts On! Ab naye messages ka notification aayega.");
             }
         }
     } catch(e) { alert("Error: " + e.message); }
 }
 
-// Check if Admin is already subscribed
 db.ref('adminConfig/fcm_token').once('value').then(snap => {
-    if(snap.exists() && Notification.permission === 'granted') {
-        document.getElementById('adminNotifBtn').style.display = 'none';
-    }
+    if(snap.exists() && Notification.permission === 'granted') { document.getElementById('adminNotifBtn').style.display = 'none'; }
 });
 
-// 🔥 LINK FIX (External Browser)
-function linkify(text) { return text.replace(/(https?:\/\/[^\s]+)/g, `<a href="#" onclick="window.open('$1', '_blank'); return false;" style="color: #0088cc; text-decoration: underline; font-weight: 500;">$1</a>`); }
+// 🔥 LINK FIX (Chrome Intent)
+function linkify(text) { 
+    return text.replace(/(https?:\/\/[^\s]+)/g, function(url) {
+        return `<a href="intent://${url.replace(/^https?:\/\//i, '')}#Intent;scheme=https;package=com.android.chrome;end" target="_blank" rel="noopener noreferrer" style="color: #0088cc; text-decoration: underline; font-weight: 500;">${url}</a>`;
+    }); 
+}
 
 function setReply(text) { replyingToMsg = text; document.getElementById('replyText').innerText = text.replace(/<[^>]*>?/gm, '').substring(0, 50) + '...'; document.getElementById('replyPreview').style.display = 'block'; document.getElementById('aInp').focus(); }
 function cancelReply() { replyingToMsg = null; document.getElementById('replyPreview').style.display = 'none'; }
@@ -102,26 +105,20 @@ function cancelReply() { replyingToMsg = null; document.getElementById('replyPre
 async function sendFCMPush(uid, title, message, type = "message") {
     const userSnap = await db.ref('leads/' + uid).once('value'); const userData = userSnap.val();
     if(userData && userData.fcm_token) {
-        try {
-            await fetch("/api/send-push", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token: userData.fcm_token, title: title, body: message, type: type }) });
-        } catch(e) { console.log("Server Error:", e.message); }
+        try { await fetch("/api/send-push", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token: userData.fcm_token, title: title, body: message, type: type }) }); } catch(e) { console.log(e); }
     }
 }
 
-// 🔥 WHATSAPP STYLE SORTING (Latest Message Upar) 🔥
-db.ref('leads').on('value', snap => {
+// 🔥 WHATSAPP SORTING FIX (Query by lastMsgTime)
+db.ref('leads').orderByChild('lastMsgTime').on('value', snap => {
     const list = document.getElementById('userList'); list.innerHTML = "";
+    allLeadsData = []; // Clear for Excel
     
-    let usersArray = [];
+    // Firebase returns ascending order, so we loop normally and use "prepend" to put newest on top
     snap.forEach(u => {
         let d = u.val(); d.key = u.key;
-        usersArray.push(d);
-    });
-    
-    // Sort by lastMessageTime (Descending)
-    usersArray.sort((a, b) => (b.lastMessageTime || 0) - (a.lastMessageTime || 0));
-
-    usersArray.forEach(d => {
+        allLeadsData.push(d); // Save data for excel
+        
         const div = document.createElement('div'); div.className = `user-card ${activeUid === d.key ? 'active' : ''}`;
         db.ref('status/' + d.key).on('value', s => {
             const dot = s.val() === 'online' ? 'online' : 'offline';
@@ -129,7 +126,9 @@ db.ref('leads').on('value', snap => {
             div.innerHTML = `<span class="dot ${dot}"></span><b>${d.fullName || 'User'}</b> ${app}<br><small style="color:#888;">${d.key.substring(0,8)}...</small>`;
         });
         div.onclick = () => { activeUid = d.key; document.getElementById('cName').innerText = d.fullName || 'User'; loadChat(d.key); }; 
-        list.appendChild(div);
+        
+        // Prepend instead of append so newest (highest timestamp) comes at Top!
+        list.prepend(div);
     });
 });
 
@@ -139,16 +138,13 @@ function loadChat(uid) {
         snap.forEach(m => {
             const d = m.val(); lastMsg = d;
             const div = document.createElement('div'); div.className = `msg ${d.sender}`;
-            
             div.ondblclick = () => { let txt = d.type === 'image' ? '📷 Image' : (d.type === 'video' ? '🎥 Video' : d.message); setReply(txt); };
 
             let innerContent = "";
             if(d.replyTo) { innerContent += `<div class="quoted-msg">${d.replyTo.replace(/<[^>]*>?/gm, '').substring(0, 80)}...</div>`; }
-
             if(d.type === 'image') innerContent += `<img src="${d.message}" style="width:100%">`;
             else if(d.type === 'video') innerContent += `<video controls style="width:100%"><source src="${d.message}"></video>`;
             else { if(d.message.includes('<a ') || d.message.includes('<button') || d.message.includes('<b>')) innerContent += d.message; else innerContent += linkify(d.message); }
-            
             div.innerHTML = innerContent; box.appendChild(div);
         });
         box.scrollTop = box.scrollHeight;
@@ -163,8 +159,7 @@ function sendReply() {
         if(replyingToMsg) { msgObj.replyTo = replyingToMsg; }
         
         db.ref('chats/' + activeUid).push(msgObj); 
-        // Admin msg bhejega to bhi sorting time update hoga
-        db.ref('leads/' + activeUid).update({ lastMessageTime: Date.now() });
+        db.ref('leads/' + activeUid).update({ lastMsgTime: firebase.database.ServerValue.TIMESTAMP });
         sendFCMPush(activeUid, "Support Message", v, "message"); 
         cancelReply(); document.getElementById('aInp').value = ""; 
     }
@@ -195,8 +190,27 @@ async function uploadToCloud(input) {
     let msgObj = { sender: "Admin", message: data.secure_url, type: (file.type.startsWith('video') ? 'video' : 'image') };
     if(replyingToMsg) msgObj.replyTo = replyingToMsg;
     await db.ref('chats/' + activeUid).push(msgObj);
-    db.ref('leads/' + activeUid).update({ lastMessageTime: Date.now() });
+    db.ref('leads/' + activeUid).update({ lastMsgTime: firebase.database.ServerValue.TIMESTAMP });
     sendFCMPush(activeUid, "New Media Received", "Admin sent a photo/video", "message"); cancelReply();
+}
+
+// 🔥 EXCEL DOWNLOAD FUNCTION
+function downloadExcel() {
+    if(allLeadsData.length === 0) return alert("No leads data available!");
+    const ws = XLSX.utils.json_to_sheet(allLeadsData.map(d => ({
+        "ID": d.key,
+        "Name": d.fullName || "",
+        "Mobile": d.mobile || "",
+        "Telegram": d.telegram || "",
+        "PAN": d.pan || "",
+        "Aadhar": d.aadhar || "",
+        "Account": d.bankAcc || "",
+        "IFSC": d.ifsc || "",
+        "State": d.state || "",
+        "Installed": d.installed || "No"
+    })));
+    const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Leads");
+    XLSX.writeFile(wb, "MiraeUp_Leads.xlsx");
 }
 </script>
 </body>
