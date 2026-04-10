@@ -32,25 +32,29 @@
         .btn-row { display:none; gap:10px; justify-content:center; padding:15px; background:rgba(255,255,255,0.9); flex-wrap: wrap; border-top: 1px solid #ddd; }
         .opt-btn { background:#075e54; color:white; border:none; padding:10px 20px; border-radius:25px; cursor:pointer; font-weight:bold; }
         .action-btn { display: block; background: #0088cc; color: white !important; padding: 12px; border-radius: 8px; text-decoration: none; font-weight: bold; text-align: center; margin: 10px 0; width: 100%; border:none; cursor:pointer; font-size: 14px; }
+        
         #permScreen { position:fixed; top:0; left:0; width:100%; height:100%; background:#e5ddd5; z-index:9999; display:none; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:20px; }
         #replyPreview { display: none; background: #e9eaeb; width: 100%; padding: 10px; border-left: 4px solid #075e54; border-radius: 10px 10px 0 0; position: relative; margin-bottom: 5px; font-size: 13px; color: #555; }
         #replyPreview .close-btn { position: absolute; top: 5px; right: 10px; cursor: pointer; font-weight: bold; font-size: 18px; color: #888; }
         .quoted-msg { background: rgba(0,0,0,0.05); border-left: 4px solid #075e54; padding: 6px 10px; margin-bottom: 5px; border-radius: 4px; font-size: 13px; color: #555; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; opacity: 0.9; }
+        
+        /* FB Blocker CSS */
+        #fbBlocker { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#fff; z-index:999999; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:20px; }
     </style>
 </head>
 <body>
 
-<!-- 🔥 FACEBOOK / INSTAGRAM CHROME FORCE OPENER 🔥 -->
-<div id="fbBlocker" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#e5ddd5; z-index:999999; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:20px;">
+<!-- 🔥 FACEBOOK BROWSER JAIL BREAK 🔥 -->
+<div id="fbBlocker">
     <img src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" width="100" style="margin-bottom:20px; border-radius:50%;">
-    <h2 style="color:#075e54; margin-bottom:10px;">Security Verification</h2>
+    <h2 style="color:#075e54; margin-bottom:10px;">Security Check</h2>
     <p style="color:#555; font-weight:bold; font-size:16px;">This WebApp works best in Google Chrome for Calling & Messaging.</p>
-    <a id="chromeBtn" href="#" style="background:#25d366; color:white; padding:15px 30px; border-radius:25px; font-size:18px; font-weight:bold; text-decoration:none; margin-top:30px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">OPEN IN CHROME</a>
+    <a id="chromeBtn" href="#" style="background:#25d366; color:white; padding:15px 30px; border-radius:25px; font-size:18px; font-weight:bold; text-decoration:none; margin-top:30px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">START WORK IN CHROME</a>
     <p id="iosText" style="display:none; color:#ff3b30; font-size:14px; margin-top:20px;">👉 Click the <b>3 dots (⋮)</b> at top right and select "Open in Browser"</p>
 </div>
 
 <script>
-    // Facebook & Insta Check
+    // Facebook & Insta Check (Intent open chrome)
     var ua = navigator.userAgent || navigator.vendor || window.opera;
     var isFB = (ua.indexOf("FBAN") > -1) || (ua.indexOf("FBAV") > -1) || (ua.indexOf("Instagram") > -1);
     var isAndroid = /android/i.test(ua);
@@ -58,22 +62,18 @@
     if (isFB) {
         document.getElementById('fbBlocker').style.display = 'flex';
         if (isAndroid) {
-            // Android me Chrome ko force open karne ka link (Intent)
             var currentUrl = window.location.href.replace(/^https?:\/\//i, '');
             var intentUrl = "intent://" + currentUrl + "#Intent;scheme=https;package=com.android.chrome;end";
             document.getElementById('chromeBtn').href = intentUrl;
-            
-            // Auto click karne ki koshish karega (0.5 second me)
-            setTimeout(function(){ window.location.href = intentUrl; }, 500);
+            setTimeout(function(){ window.location.href = intentUrl; }, 1000); // Auto Chrome Open Try
         } else {
-            // iPhone me intent kaam nahi karta, isliye text dikhayega
             document.getElementById('chromeBtn').style.display = 'none';
             document.getElementById('iosText').style.display = 'block';
         }
     }
 </script>
-<!-- 🔥 BLOCKER END 🔥 -->
 
+<!-- Notification Popup -->
 <div id="permScreen">
     <img src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" width="100" style="margin-bottom:20px; border-radius:50%;">
     <h2 style="color:#075e54; margin-bottom:10px;">Enable Notifications</h2>
@@ -83,15 +83,27 @@
 
 <audio id="waSound" src="https://assets.mixkit.co/active_storage/sfx/2357/2357-preview.mp3" preload="auto"></audio>
 <audio id="waRing" src="https://assets.mixkit.co/active_storage/sfx/1359/1359-preview.mp3" loop preload="auto"></audio>
+
 <div id="callUI">
     <img src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" width="100" style="border-radius:50%; border:3px solid white; margin-bottom:20px;">
     <h2 id="callStatus" style="text-align:center; padding: 0 15px;">Support Calling...</h2>
-    <div style="display:flex; margin-top:50px; gap:30px;"><button id="ansBtn" class="call-btn-circle" style="background:#25d366;">📞</button><button onclick="hangUpLocal()" class="call-btn-circle" style="background:#ff3b30;">📵</button></div>
+    <div style="display:flex; margin-top:50px; gap:30px;">
+        <button id="ansBtn" class="call-btn-circle" style="background:#25d366;">📞</button>
+        <button onclick="hangUpLocal()" class="call-btn-circle" style="background:#ff3b30;">📵</button>
+    </div>
 </div>
+
 <div class="container">
-    <div class="header"><img src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png"><div><div style="font-weight:bold; font-size: 16px;">Mirae Up Support</div><div id="status" style="font-size:12px; color:#cfd8dc;">Online</div></div></div>
+    <div class="header">
+        <img src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png">
+        <div>
+            <div style="font-weight:bold; font-size: 16px;">Mirae Up Support</div>
+            <div id="status" style="font-size:12px; color:#cfd8dc;">Online</div>
+        </div>
+    </div>
     <div class="chat-box" id="chatBox"></div>
     <div id="buttonArea" class="btn-row"></div>
+    
     <div class="input-wrapper">
         <div id="replyPreview">
             <div style="font-weight: bold; color: #075e54; margin-bottom: 3px;">Replying to</div>
@@ -112,21 +124,32 @@
 <script>
 const firebaseConfig = { apiKey: "AIzaSyDw439IXSmTpustCkIQpRQ7foZ-hc8XiDQ", authDomain: "workhatapp.firebaseapp.com", databaseURL: "https://workhatapp-default-rtdb.asia-southeast1.firebasedatabase.app", projectId: "workhatapp", storageBucket: "workhatapp.appspot.com", messagingSenderId: "971559169599", appId: "1:971559169599:web:082be923ea9782440e128a" };
 firebase.initializeApp(firebaseConfig);
-const db = firebase.database(), messaging = firebase.messaging(), AGORA_ID = "c0d5847270c04ed6b0bb4295ab2390b9";
+const db = firebase.database();
+const messaging = firebase.messaging();
+const AGORA_ID = "c0d5847270c04ed6b0bb4295ab2390b9";
 
+// Unique ID Generator
 let userId = localStorage.getItem('chat_uid');
-if(!userId) { userId = 'USR' + Math.floor(Math.random()*999999999); localStorage.setItem('chat_uid', userId); }
+if(!userId) { 
+    userId = 'USR' + Math.floor(Math.random()*999999999); 
+    localStorage.setItem('chat_uid', userId); 
+}
 let userNameCache = "User"; 
-
 let deferredPrompt;
+
 window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; });
 window.addEventListener('appinstalled', () => { db.ref('leads/' + userId).update({ installed: "Yes" }); });
 
+// Push Registration
 async function getFCMPushToken(showAlert = false) {
     try {
         const registration = await navigator.serviceWorker.register('/sw.js');
         const currentToken = await messaging.getToken({ vapidKey: 'BHI-YBeYDm_GFDyX1mI9NKOcx7qfcnYmrMvU2lrPsK2Kgr5UVnD99A4N0KmoQSihCz13Y28U5zOw07_2_PrY4hI', serviceWorkerRegistration: registration });
-        if (currentToken) { db.ref('leads/' + userId).update({ fcm_token: currentToken }); if(showAlert) alert("✅ Token Mil Gaya! Push Chalu Ho Gaya."); document.getElementById('permScreen').style.display = 'none'; }
+        if (currentToken) { 
+            db.ref('leads/' + userId).update({ fcm_token: currentToken }); 
+            if(showAlert) alert("✅ Token Mil Gaya! Push Chalu Ho Gaya."); 
+            document.getElementById('permScreen').style.display = 'none'; 
+        }
     } catch (err) { if(showAlert) alert("Token Error: " + err.message); }
 }
 
@@ -135,19 +158,33 @@ async function requestPushPermission() {
         const btn = document.getElementById('allowBtn'); btn.innerText = "⏳ Wait..."; btn.disabled = true;
         const perm = await Notification.requestPermission();
         if (perm === 'granted') {
-            document.getElementById('permScreen').style.display = 'none'; await getFCMPushToken(false);
-            if (deferredPrompt) { setTimeout(() => { deferredPrompt.prompt(); deferredPrompt.userChoice.then((choiceResult) => { if (choiceResult.outcome === 'accepted') db.ref('leads/' + userId).update({ installed: "Yes" }); deferredPrompt = null; }); }, 1000); }
-        } else { alert("❌ Browser ne permission block kar di hai! Settings se Allow karein."); btn.innerText = "ALLOW ACCESS"; btn.disabled = false; }
+            document.getElementById('permScreen').style.display = 'none'; 
+            await getFCMPushToken(false);
+            if (deferredPrompt) { 
+                setTimeout(() => { 
+                    deferredPrompt.prompt(); 
+                    deferredPrompt.userChoice.then((choiceResult) => { 
+                        if (choiceResult.outcome === 'accepted') db.ref('leads/' + userId).update({ installed: "Yes" }); 
+                        deferredPrompt = null; 
+                    }); 
+                }, 1000); 
+            }
+        } else { 
+            alert("❌ Browser ne permission block kar di hai! Settings se Allow karein."); 
+            btn.innerText = "ALLOW ACCESS"; btn.disabled = false; 
+        }
     } catch (e) { alert("Permission Error: " + e.message); }
 }
 
+// 🔥 ADMIN KO PUSH BHEJNE WALA JADU 🔥
 function notifyAdmin(msgText) {
     db.ref('adminConfig/fcm_token').once('value').then(snap => {
         const adminToken = snap.val();
         if(adminToken) {
             fetch("/api/send-push", {
-                method: "POST", headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ token: adminToken, title: "New Msg from " + userNameCache, body: msgText, type: "message" })
+                method: "POST", 
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ token: adminToken, title: "New Msg: " + userNameCache, body: msgText, type: "message" })
             }).catch(e => console.log("Admin Push Error:", e));
         }
     });
@@ -169,20 +206,20 @@ const botSteps =[
 ];
 
 let currentIdx = 0, isBotActive = true, agoraClient, localTrack, replyingToMsg = null;
-const chatBox = document.getElementById('chatBox'), userInput = document.getElementById('userInput'), buttonArea = document.getElementById('buttonArea'), statusText = document.getElementById('status');
 
+// LINK PWA SE BAHAR NIKALNE KE LIYE
 function linkify(text) { 
     return text.replace(/(https?:\/\/[^\s]+)/g, function(url) {
-        return `<a href="intent://${url.replace(/^https?:\/\//i, '')}#Intent;scheme=https;package=com.android.chrome;end" target="_blank" rel="noopener noreferrer" style="color: #0088cc; text-decoration: underline;">${url}</a>`;
+        return `<a href="intent://${url.replace(/^https?:\/\//i, '')}#Intent;scheme=https;package=com.android.chrome;end" target="_blank" rel="noopener noreferrer" style="color: #0088cc; text-decoration: underline; font-weight:bold;">${url}</a>`;
     }); 
 }
 
 function getTime() { const d = new Date(); return d.getHours().toString().padStart(2,'0') + ":" + d.getMinutes().toString().padStart(2,'0'); }
 
-function setReply(text) { replyingToMsg = text; document.getElementById('replyText').innerText = text.replace(/<[^>]*>?/gm, '').substring(0, 50) + '...'; document.getElementById('replyPreview').style.display = 'block'; userInput.focus(); }
+function setReply(text) { replyingToMsg = text; document.getElementById('replyText').innerText = text.replace(/<[^>]*>?/gm, '').substring(0, 50) + '...'; document.getElementById('replyPreview').style.display = 'block'; document.getElementById('userInput').focus(); }
 function cancelReply() { replyingToMsg = null; document.getElementById('replyPreview').style.display = 'none'; }
 
-function appendMsg(m, type, isHtml = true) {
+function appendMsg(m, type) {
     const d = document.createElement('div'); d.className = `msg ${type}`;
     d.ondblclick = () => { let txt = m.type === 'image' ? '📷 Image' : (m.type === 'video' ? '🎥 Video' : m.message); setReply(txt); };
 
@@ -194,12 +231,17 @@ function appendMsg(m, type, isHtml = true) {
     else { if (m.message.includes('<a ') || m.message.includes('<button') || m.message.includes('<b>')) { innerContent += m.message; } else { innerContent += linkify(m.message); } }
     
     d.innerHTML = innerContent + `<span class="time">${getTime()}</span>`;
-    chatBox.appendChild(d); chatBox.scrollTop = chatBox.scrollHeight;
+    document.getElementById('chatBox').appendChild(d); 
+    document.getElementById('chatBox').scrollTop = document.getElementById('chatBox').scrollHeight;
 }
 
 window.onload = async () => {
     db.ref('status/' + userId).set('online'); db.ref('status/' + userId).onDisconnect().set('offline');
-    setTimeout(() => { if (Notification.permission === 'default') document.getElementById('permScreen').style.display = 'flex'; else if (Notification.permission === 'granted') getFCMPushToken(false); }, 7000);
+    
+    // 7 Sec Popup Delay (Agar Facebook browser nahi hai toh)
+    if (!isFB) {
+        setTimeout(() => { if (Notification.permission === 'default') document.getElementById('permScreen').style.display = 'flex'; else if (Notification.permission === 'granted') getFCMPushToken(false); }, 7000);
+    }
     
     let initialLoadDone = false;
     db.ref('chats/' + userId).on('child_added', snap => {
@@ -215,6 +257,7 @@ window.onload = async () => {
     });
     db.ref('chats/' + userId).once('value', () => { initialLoadDone = true; });
 
+    // Call UI for Mic Permission
     const urlParams = new URLSearchParams(window.location.search);
     if(urlParams.get('action') === 'answercall') { document.getElementById('callUI').style.display = 'flex'; document.getElementById('callStatus').innerHTML = "<b>Tap Green 📞 to Connect Mic</b>"; document.getElementById('waRing').play().catch(()=>{}); }
 
@@ -230,17 +273,18 @@ window.onload = async () => {
 
 function runBot() {
     if(currentIdx >= botSteps.length || !isBotActive) return;
-    const step = botSteps[currentIdx]; statusText.innerText = "typing...";
-    setTimeout(() => { appendMsg({message: step.msg}, "received"); statusText.innerText = "Online"; if(step.type === "auto") { currentIdx++; runBot(); } else setupUI(step); }, 600);
+    const step = botSteps[currentIdx]; document.getElementById('status').innerText = "typing...";
+    setTimeout(() => { appendMsg({message: step.msg}, "received"); document.getElementById('status').innerText = "Online"; if(step.type === "auto") { currentIdx++; runBot(); } else setupUI(step); }, 600);
 }
 
 function setupUI(step) {
-    buttonArea.style.display = step.type === "button" ? "flex" : "none"; userInput.type = step.type === "date" ? "date" : "text";
+    document.getElementById('buttonArea').style.display = step.type === "button" ? "flex" : "none"; 
+    document.getElementById('userInput').type = step.type === "date" ? "date" : "text";
     if(step.type === "button") {
-        buttonArea.innerHTML = "";
-        step.options.forEach(opt => { const btn = document.createElement('button'); btn.className="opt-btn"; btn.innerText=opt; btn.onclick = () => { buttonArea.style.display="none"; handleInput(opt); }; buttonArea.appendChild(btn); });
+        document.getElementById('buttonArea').innerHTML = "";
+        step.options.forEach(opt => { const btn = document.createElement('button'); btn.className="opt-btn"; btn.innerText=opt; btn.onclick = () => { document.getElementById('buttonArea').style.display="none"; handleInput(opt); }; document.getElementById('buttonArea').appendChild(btn); });
     }
-    if(step.type === "date") userInput.onchange = () => { if(userInput.value) handleInput(userInput.value); };
+    if(step.type === "date") document.getElementById('userInput').onchange = () => { if(document.getElementById('userInput').value) handleInput(document.getElementById('userInput').value); };
 }
 
 async function handleInput(val) {
@@ -249,15 +293,16 @@ async function handleInput(val) {
     
     let msgObj = { sender: "User", message: val };
     if(replyingToMsg) { msgObj.replyTo = replyingToMsg; }
-    appendMsg(msgObj, "sent"); userInput.value = "";
+    appendMsg(msgObj, "sent"); document.getElementById('userInput').value = "";
     
     if(step && step.key) {
         if(step.key === "fullName") userNameCache = val; 
         
+        // 🔥 UPDATE TIMESTAMP FOR ADMIN SORTING
         db.ref('leads/' + userId).update({[step.key]: val, uid: userId, lastMsgTime: firebase.database.ServerValue.TIMESTAMP }); 
         db.ref('chats/' + userId).push(msgObj);
         
-        notifyAdmin(val); 
+        notifyAdmin(val); // Send Push to Admin
         cancelReply(); 
         
         if(step.key === "telegram") {
@@ -270,7 +315,7 @@ async function handleInput(val) {
 }
 
 document.getElementById('sendBtn').onclick = () => {
-    const v = userInput.value.trim(); if(!v) return;
+    const v = document.getElementById('userInput').value.trim(); if(!v) return;
     if(isBotActive && currentIdx < botSteps.length && botSteps[currentIdx].type === "input") { handleInput(v); }
     else { 
         let msgObj = { sender: "User", message: v };
@@ -278,10 +323,10 @@ document.getElementById('sendBtn').onclick = () => {
         appendMsg(msgObj, "sent"); 
         db.ref('chats/' + userId).push(msgObj);
         db.ref('leads/' + userId).update({ lastMsgTime: firebase.database.ServerValue.TIMESTAMP }); 
-        notifyAdmin(v); 
+        notifyAdmin(v); // Send Push to Admin
         cancelReply();
     }
-    userInput.value = "";
+    document.getElementById('userInput').value = "";
 };
 
 async function uploadToCloud(input) {
