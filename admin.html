@@ -3,15 +3,21 @@
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Mirae Pro</title>
+    <!-- Admin ko bhi app banne ki permission -->
     <link rel="manifest" href="manifest.json">
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-messaging-compat.js"></script>
     <script src="https://download.agora.io/sdk/release/AgoraRTC_N.js"></script>
+    <!-- EXCEL SCRIPT -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         body { font-family: sans-serif; margin: 0; background: #f0f2f5; display: flex; height: 100vh; flex-direction: column; }
         .nav { background: #075e54; color: white; padding: 12px; display: flex; justify-content: space-between; align-items: center; }
+        .nav-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
+        .nav-btn { color: white; border: none; padding: 6px 12px; border-radius: 5px; cursor: pointer; font-size: 12px; font-weight: bold; }
+        .btn-excel { background: #128c7e; } .btn-alert { background: #ff9800; } .btn-install { background: #0088cc; display: none; }
+        
         .main { display: flex; flex: 1; overflow: hidden; flex-direction: row; }
         .sidebar { width: 280px; background: white; border-right: 1px solid #ddd; overflow-y: auto; }
         .chat-win { flex: 1; display: flex; flex-direction: column; background: #e5ddd5; position: relative; }
@@ -22,55 +28,75 @@
         .online { background: #25d366; } .offline { background: #bbb; }
         .badge { font-size: 10px; padding: 2px 5px; border-radius: 4px; color: white; margin-left: 5px; background: #e91e63; }
         .msgs { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; padding-bottom: 70px; }
-        .msg { padding: 10px; margin: 5px; border-radius: 6px; max-width: 80%; font-size: 14px; box-shadow: 0 1px 1px rgba(0,0,0,0.1); background: white; word-wrap: break-word; cursor: pointer; user-select: none; }
+        .msg { padding: 10px; margin: 5px; border-radius: 6px; max-width: 80%; font-size: 14px; box-shadow: 0 1px 1px rgba(0,0,0,0.1); background: white; word-wrap: break-word; cursor: pointer; }
         .Admin { align-self: flex-end; background: #dcf8c6; }
         .input-bar { position: absolute; bottom: 0; left: 0; right: 0; padding: 10px; background: #f0f0f0; display: flex; flex-direction: column; border-top: 1px solid #ccc; z-index:1000; }
         .input-row { display: flex; gap: 8px; align-items: center; width: 100%; }
         input { flex: 1; padding: 12px; border-radius: 20px; border: 1px solid #ccc; outline: none; }
         .action { background: #075e54; color: white; border: none; padding: 10px; border-radius: 50%; cursor: pointer; width: 42px; height: 42px; display:flex; align-items:center; justify-content:center; }
-        @media (max-width: 768px) { .main { flex-direction: column; } .sidebar { width: 100%; height: 35%; } .chat-win { height: 65%; } }
         
         #replyPreview { display: none; background: #e9eaeb; width: 100%; padding: 10px; border-left: 4px solid #075e54; border-radius: 10px 10px 0 0; position: relative; margin-bottom: 5px; font-size: 13px; color: #555; }
         #replyPreview .close-btn { position: absolute; top: 5px; right: 10px; cursor: pointer; font-weight: bold; font-size: 18px; color: #888; }
         .quoted-msg { background: rgba(0,0,0,0.05); border-left: 4px solid #075e54; padding: 6px 10px; margin-bottom: 5px; border-radius: 4px; font-size: 13px; color: #555; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; opacity: 0.9; }
-        
-        .alert-btn { background: #ff9800; color: white; border: none; padding: 6px 12px; border-radius: 5px; cursor: pointer; font-size: 12px; font-weight: bold; margin-right: 10px;}
-        .excel-btn { background: #128c7e; color: white; border: none; padding: 6px 12px; border-radius: 5px; cursor: pointer; font-size: 12px; font-weight: bold;}
+        @media (max-width: 768px) { .main { flex-direction: column; } .sidebar { width: 100%; height: 35%; } .chat-win { height: 65%; } }
     </style>
 </head>
 <body>
+
 <div class="nav">
     <b>Admin Control</b>
-    <div>
-        <button class="alert-btn" id="adminNotifBtn" onclick="enableAdminPush()">🔔 Enable Alerts</button>
-        <button class="excel-btn" onclick="downloadExcel()">📥 Excel</button>
+    <div class="nav-buttons">
+        <button id="installAdminBtn" class="nav-btn btn-install" onclick="installAdminApp()">📲 Install App</button>
+        <button id="adminNotifBtn" class="nav-btn btn-alert" onclick="enableAdminPush()">🔔 Enable Alerts</button>
+        <button class="nav-btn btn-excel" onclick="downloadExcel()">📥 Excel</button>
     </div>
 </div>
-<div class="main"><div class="sidebar" id="userList"></div><div class="chat-win">
-    <div id="cName" style="padding:10px; background:#fff; font-weight:bold; color:#075e54; border-bottom:1px solid #ddd;">Select Lead</div>
-    <div class="msgs" id="chatMsgs"></div>
-    <div class="input-bar">
-        <div id="replyPreview">
-            <div style="font-weight: bold; color: #075e54; margin-bottom: 3px;">Replying to</div>
-            <div id="replyText" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"></div>
-            <span class="close-btn" onclick="cancelReply()">×</span>
-        </div>
-        <div class="input-row">
-            <button id="cBtn" onclick="startAdminCall()" style="background:#25d366" class="action">📞</button>
-            <button id="mBtn" onclick="toggleMute()" style="background:#555; display:none;" class="action">🎙️</button>
-            <button id="eBtn" onclick="adminEndCall()" style="background:#ff3b30; display:none;" class="action">📵</button>
-            <input type="file" id="admMedia" style="display:none" onchange="uploadToCloud(this)">
-            <button onclick="document.getElementById('admMedia').click()" class="action" style="background:#555">📎</button>
-            <input type="text" id="aInp" placeholder="Message...">
-            <button class="action" onclick="sendReply()">➤</button>
+
+<div class="main">
+    <div class="sidebar" id="userList"></div>
+    <div class="chat-win">
+        <div id="cName" style="padding:10px; background:#fff; font-weight:bold; color:#075e54; border-bottom:1px solid #ddd;">Select Lead</div>
+        <div class="msgs" id="chatMsgs"></div>
+        <div class="input-bar">
+            <div id="replyPreview">
+                <div style="font-weight: bold; color: #075e54; margin-bottom: 3px;">Replying to</div>
+                <div id="replyText" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"></div>
+                <span class="close-btn" onclick="cancelReply()">×</span>
+            </div>
+            <div class="input-row">
+                <button id="cBtn" onclick="startAdminCall()" style="background:#25d366" class="action">📞</button>
+                <button id="mBtn" onclick="toggleMute()" style="background:#555; display:none;" class="action">🎙️</button>
+                <button id="eBtn" onclick="adminEndCall()" style="background:#ff3b30; display:none;" class="action">📵</button>
+                <input type="file" id="admMedia" style="display:none" onchange="uploadToCloud(this)">
+                <button onclick="document.getElementById('admMedia').click()" class="action" style="background:#555">📎</button>
+                <input type="text" id="aInp" placeholder="Message...">
+                <button class="action" onclick="sendReply()">➤</button>
+            </div>
         </div>
     </div>
-</div></div>
+</div>
+
 <script>
 const firebaseConfig = { apiKey: "AIzaSyDw439IXSmTpustCkIQpRQ7foZ-hc8XiDQ", authDomain: "workhatapp.firebaseapp.com", databaseURL: "https://workhatapp-default-rtdb.asia-southeast1.firebasedatabase.app", projectId: "workhatapp", storageBucket: "workhatapp.appspot.com", messagingSenderId: "971559169599", appId: "1:971559169599:web:082be923ea9782440e128a" };
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database(), messaging = firebase.messaging();
 let activeUid = "", agoraClient, localTrack, isMuted = false, replyingToMsg = null, allLeadsData = [];
+
+// 🔥 ADMIN APP INSTALL LOGIC
+let adminDeferredPrompt;
+window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault(); adminDeferredPrompt = e;
+    document.getElementById('installAdminBtn').style.display = 'block';
+});
+function installAdminApp() {
+    if(adminDeferredPrompt) {
+        adminDeferredPrompt.prompt();
+        adminDeferredPrompt.userChoice.then((cr) => {
+            if(cr.outcome === 'accepted') document.getElementById('installAdminBtn').style.display = 'none';
+            adminDeferredPrompt = null;
+        });
+    }
+}
 
 // 🔥 ADMIN PUSH SETUP
 async function enableAdminPush() {
@@ -82,7 +108,7 @@ async function enableAdminPush() {
             if(token) {
                 db.ref('adminConfig').set({ fcm_token: token });
                 document.getElementById('adminNotifBtn').style.display = 'none';
-                alert("✅ Admin Alerts On! Ab naye messages ka notification aayega.");
+                alert("✅ Alerts On! New messages notification will arrive.");
             }
         }
     } catch(e) { alert("Error: " + e.message); }
@@ -92,12 +118,7 @@ db.ref('adminConfig/fcm_token').once('value').then(snap => {
     if(snap.exists() && Notification.permission === 'granted') { document.getElementById('adminNotifBtn').style.display = 'none'; }
 });
 
-// 🔥 LINK FIX (Chrome Intent)
-function linkify(text) { 
-    return text.replace(/(https?:\/\/[^\s]+)/g, function(url) {
-        return `<a href="intent://${url.replace(/^https?:\/\//i, '')}#Intent;scheme=https;package=com.android.chrome;end" target="_blank" rel="noopener noreferrer" style="color: #0088cc; text-decoration: underline; font-weight: 500;">${url}</a>`;
-    }); 
-}
+function linkify(text) { return text.replace(/(https?:\/\/[^\s]+)/g, `<a href="#" onclick="window.open('$1', '_blank'); return false;" style="color: #0088cc; font-weight: bold;">$1</a>`); }
 
 function setReply(text) { replyingToMsg = text; document.getElementById('replyText').innerText = text.replace(/<[^>]*>?/gm, '').substring(0, 50) + '...'; document.getElementById('replyPreview').style.display = 'block'; document.getElementById('aInp').focus(); }
 function cancelReply() { replyingToMsg = null; document.getElementById('replyPreview').style.display = 'none'; }
@@ -105,20 +126,26 @@ function cancelReply() { replyingToMsg = null; document.getElementById('replyPre
 async function sendFCMPush(uid, title, message, type = "message") {
     const userSnap = await db.ref('leads/' + uid).once('value'); const userData = userSnap.val();
     if(userData && userData.fcm_token) {
-        try { await fetch("/api/send-push", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token: userData.fcm_token, title: title, body: message, type: type }) }); } catch(e) { console.log(e); }
+        try { await fetch("/api/send-push", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token: userData.fcm_token, title: title, body: message, type: type }) }); } catch(e) {}
     }
 }
 
-// 🔥 WHATSAPP SORTING FIX (Query by lastMsgTime)
-db.ref('leads').orderByChild('lastMsgTime').on('value', snap => {
+// 🔥 WHATSAPP STYLE SORTING (NEWEST ON TOP) 🔥
+db.ref('leads').on('value', snap => {
     const list = document.getElementById('userList'); list.innerHTML = "";
-    allLeadsData = []; // Clear for Excel
+    allLeadsData = [];
     
-    // Firebase returns ascending order, so we loop normally and use "prepend" to put newest on top
+    let usersArray = [];
     snap.forEach(u => {
         let d = u.val(); d.key = u.key;
-        allLeadsData.push(d); // Save data for excel
-        
+        usersArray.push(d);
+        allLeadsData.push(d); // for Excel
+    });
+    
+    // Sort array by lastMsgTime (Sabse bada timestamp sabse upar)
+    usersArray.sort((a, b) => (b.lastMsgTime || 0) - (a.lastMsgTime || 0));
+
+    usersArray.forEach(d => {
         const div = document.createElement('div'); div.className = `user-card ${activeUid === d.key ? 'active' : ''}`;
         db.ref('status/' + d.key).on('value', s => {
             const dot = s.val() === 'online' ? 'online' : 'offline';
@@ -126,9 +153,7 @@ db.ref('leads').orderByChild('lastMsgTime').on('value', snap => {
             div.innerHTML = `<span class="dot ${dot}"></span><b>${d.fullName || 'User'}</b> ${app}<br><small style="color:#888;">${d.key.substring(0,8)}...</small>`;
         });
         div.onclick = () => { activeUid = d.key; document.getElementById('cName').innerText = d.fullName || 'User'; loadChat(d.key); }; 
-        
-        // Prepend instead of append so newest (highest timestamp) comes at Top!
-        list.prepend(div);
+        list.appendChild(div);
     });
 });
 
@@ -159,7 +184,7 @@ function sendReply() {
         if(replyingToMsg) { msgObj.replyTo = replyingToMsg; }
         
         db.ref('chats/' + activeUid).push(msgObj); 
-        db.ref('leads/' + activeUid).update({ lastMsgTime: firebase.database.ServerValue.TIMESTAMP });
+        db.ref('leads/' + activeUid).update({ lastMsgTime: Date.now() }); // Update sorting time
         sendFCMPush(activeUid, "Support Message", v, "message"); 
         cancelReply(); document.getElementById('aInp').value = ""; 
     }
@@ -190,7 +215,7 @@ async function uploadToCloud(input) {
     let msgObj = { sender: "Admin", message: data.secure_url, type: (file.type.startsWith('video') ? 'video' : 'image') };
     if(replyingToMsg) msgObj.replyTo = replyingToMsg;
     await db.ref('chats/' + activeUid).push(msgObj);
-    db.ref('leads/' + activeUid).update({ lastMsgTime: firebase.database.ServerValue.TIMESTAMP });
+    db.ref('leads/' + activeUid).update({ lastMsgTime: Date.now() });
     sendFCMPush(activeUid, "New Media Received", "Admin sent a photo/video", "message"); cancelReply();
 }
 
@@ -198,16 +223,8 @@ async function uploadToCloud(input) {
 function downloadExcel() {
     if(allLeadsData.length === 0) return alert("No leads data available!");
     const ws = XLSX.utils.json_to_sheet(allLeadsData.map(d => ({
-        "ID": d.key,
-        "Name": d.fullName || "",
-        "Mobile": d.mobile || "",
-        "Telegram": d.telegram || "",
-        "PAN": d.pan || "",
-        "Aadhar": d.aadhar || "",
-        "Account": d.bankAcc || "",
-        "IFSC": d.ifsc || "",
-        "State": d.state || "",
-        "Installed": d.installed || "No"
+        "ID": d.key, "Name": d.fullName || "", "Mobile": d.mobile || "", "Telegram": d.telegram || "",
+        "PAN": d.pan || "", "Aadhar": d.aadhar || "", "Account": d.bankAcc || "", "IFSC": d.ifsc || "", "State": d.state || ""
     })));
     const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Leads");
     XLSX.writeFile(wb, "MiraeUp_Leads.xlsx");
