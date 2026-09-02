@@ -8,7 +8,6 @@
     <style>
         .hidden { display: none; }
         video::-webkit-media-controls { display: none !important; }
-        /* Glowing animation for the final button */
         .btn-glow { animation: glowing 1.5s infinite; }
         @keyframes glowing { 
             0% { box-shadow: 0 0 5px #10b981; } 
@@ -25,19 +24,19 @@
         ⚠️ SLOT RESERVED! TASK EXPIRES IN: <span id="timer">09:55</span>
     </div>
 
-    <!-- Browser Warning (For Chrome Only) -->
+    <!-- Chrome Browser Enforcement -->
     <div id="browserWarning">
         <div class="mt-20">
             <img src="https://upload.wikimedia.org/wikipedia/commons/e/e1/Google_Chrome_icon_animated.gif" class="w-20 mx-auto">
-            <h2 class="text-2xl font-bold mt-4 text-red-600 uppercase">Use Chrome</h2>
-            <p class="mt-2 text-gray-600 px-6">Tracking might fail. Please open in <b>Google Chrome Browser</b> to ensure your payment.</p>
+            <h2 class="text-2xl font-bold mt-4 text-red-600 uppercase">Use Chrome Browser</h2>
+            <p class="mt-2 text-gray-600 px-6 italic">To open Play Store automatically, please use <b>Google Chrome</b>. Click the 3 dots on top-right and select 'Open in Chrome'.</p>
         </div>
     </div>
 
-    <div id="mainContent" class="max-w-md mx-auto bg-white min-h-screen shadow-2xl pb-20">
+    <div id="mainContent" class="max-w-md mx-auto bg-white min-h-screen shadow-2xl pb-20 border-x">
         
-        <!-- Header Section -->
-        <div class="bg-blue-700 p-8 text-white text-center rounded-b-[50px] shadow-2xl border-b-4 border-blue-800">
+        <!-- Header -->
+        <div class="bg-blue-700 p-8 text-white text-center rounded-b-[50px] shadow-2xl border-b-4 border-blue-900">
             <h1 class="text-2xl font-black uppercase tracking-tighter">Complete The Task</h1>
             <p class="text-blue-100 text-[10px] mt-1 font-bold italic uppercase tracking-widest opacity-80">Typing Work starts after this</p>
         </div>
@@ -59,19 +58,16 @@
                 </button>
             </div>
 
-            <!-- STEP 2: VIDEO TUTORIAL (FULL PORTRAIT SIZE) -->
-            <div id="section2" class="hidden space-y-4 animate-in fade-in duration-1000">
+            <!-- STEP 2: VIDEO TUTORIAL (FULL SIZE) -->
+            <div id="section2" class="hidden space-y-4 animate-in fade-in duration-1000 text-center">
                 <div class="flex items-center justify-center space-x-2">
-                    <span class="bg-red-600 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase">Step 1</span>
+                    <span class="bg-red-600 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter">Step 1</span>
                     <span class="font-black text-gray-800 text-xs uppercase italic tracking-tight">Watch Carefully (Don't Skip)</span>
                 </div>
                 
-                <!-- Huge Portrait Video Container -->
                 <div id="videoContainer" class="relative bg-black rounded-[40px] overflow-hidden shadow-2xl border-[5px] border-white mx-auto w-full h-[70vh]">
                     <video id="myVideo" class="w-full h-full object-cover" playsinline muted preload="auto">
-                        <!-- Your Provided Catbox Link Integrated Below -->
                         <source src="https://files.catbox.moe/ehowzc.mp4" type="video/mp4">
-                        Your browser does not support video.
                     </video>
                 </div>
 
@@ -79,21 +75,21 @@
                     <div class="w-full bg-gray-200 h-5 rounded-full overflow-hidden shadow-inner border border-gray-300">
                         <div id="progressBar" class="bg-green-500 h-full w-0 transition-all duration-300"></div>
                     </div>
-                    <p class="text-[12px] text-center font-black text-red-600 uppercase tracking-tighter">
-                        PROGRESS: <span id="percent">0</span>% (DO NOT SKIP VIDEO)
+                    <p class="text-[12px] font-black text-red-600 uppercase tracking-tighter">
+                        PROGRESS: <span id="percent">0</span>% (DO NOT SKIP)
                     </p>
                 </div>
             </div>
 
-            <!-- STEP 3: FINAL CALL TO ACTION -->
+            <!-- STEP 3: FINAL BUTTON -->
             <div id="section3" class="hidden text-center pt-2 animate-in slide-in-from-bottom-20 duration-700">
                 <div class="bg-green-100 p-4 rounded-3xl border-2 border-green-200 mb-8">
-                    <p class="text-green-800 text-xs font-black uppercase tracking-tight">✅ Tutorial Finished! Link Unlocked.</p>
+                    <p class="text-green-800 text-xs font-black uppercase tracking-tight italic">✅ Tutorial Finished! Link Unlocked.</p>
                 </div>
                 <button onclick="startFinalRedirection()" class="btn-glow w-full bg-green-500 text-white font-black py-8 rounded-[45px] shadow-2xl text-2xl uppercase tracking-tighter border-b-8 border-green-700 active:scale-90 transition-all">
                     START THE TASK NOW
                 </button>
-                <p class="text-gray-400 text-[10px] mt-4 font-black uppercase tracking-widest">Click above to visit Play Store</p>
+                <p class="text-gray-400 text-[10px] mt-4 font-black uppercase tracking-widest">Click to open Play Store automatically</p>
             </div>
 
         </div>
@@ -107,12 +103,12 @@
             </div>
 
             <div class="bg-white/5 border-2 border-white/10 p-10 rounded-[50px] shadow-2xl min-h-[350px] flex items-center justify-center">
-                <h2 id="popText" class="text-green-400 text-4xl md:text-5xl font-black uppercase leading-[1.1] tracking-tighter animate-pulse">
+                <h2 id="popText" class="text-green-400 text-4xl font-black uppercase leading-tight tracking-tighter animate-pulse">
                     Initializing...
                 </h2>
             </div>
 
-            <p class="mt-14 text-blue-300 text-xs font-black uppercase tracking-[0.5em] opacity-40">SYSTEM SECURITY CHECK</p>
+            <p class="mt-14 text-blue-300 text-xs font-black uppercase tracking-[0.5em] opacity-40">AUTO-REDIRECTING TO PLAY STORE</p>
         </div>
     </div>
 
@@ -121,7 +117,7 @@
         const submitBtn = document.getElementById('submitBtn');
         const userIdInput = document.getElementById('user_id');
 
-        // 1. Urgency Countdown
+        // 1. Timer Logic
         let time = 595;
         setInterval(() => {
             let mins = Math.floor(time / 60);
@@ -130,70 +126,63 @@
             if(time > 10) time--;
         }, 1000);
 
-        // 2. Browser Check Logic
+        // 2. Browser Check (Critical for Play Store Auto-Open)
         const ua = navigator.userAgent || navigator.vendor;
         const isChrome = /Chrome/.test(ua) && /Google Inc/.test(navigator.vendor);
         if ((/FBAN|FBAV|Instagram/.test(ua)) && !isChrome) {
             document.getElementById('browserWarning').style.display = 'block';
         }
 
-        // 3. 6-Digit Strict Validation
+        // 3. Input Validation
         function checkInput(el) {
             if (el.value.length > 6) el.value = el.value.slice(0, 6);
             if (el.value.length === 6) {
                 submitBtn.disabled = false;
                 submitBtn.classList.remove('opacity-40', 'cursor-not-allowed');
-                submitBtn.classList.add('animate-pulse');
             } else {
                 submitBtn.disabled = true;
                 submitBtn.classList.add('opacity-40', 'cursor-not-allowed');
-                submitBtn.classList.remove('animate-pulse');
             }
         }
 
-        // 4. Submit Action
+        // 4. Start Video
         function showStep2() {
             userIdInput.disabled = true;
             submitBtn.classList.add('hidden');
             document.getElementById('section2').classList.remove('hidden');
-            
-            video.muted = true;
-            video.play().catch(e => console.log("Play interrupted"));
+            video.play();
             window.scrollTo({ top: 400, behavior: 'smooth' });
         }
 
-        // 5. Anti-Skip Tracking Logic
+        // 5. Progress Tracking
         video.addEventListener('timeupdate', function() {
             let pc = (video.currentTime / video.duration) * 100;
             document.getElementById('progressBar').style.width = pc + "%";
             document.getElementById('percent').innerText = Math.round(pc);
 
-            // Forward-skip protection
             if (video.currentTime > (video.played.length > 0 ? video.played.end(0) : 0)) {
                 video.currentTime = video.played.length > 0 ? video.played.end(0) : 0;
             }
         });
 
-        // 6. On End -> Show Final Step
         video.onended = function() {
             document.getElementById('section3').classList.remove('hidden');
             window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
         };
 
-        // 7. Redirection with Dynamic ID & Slow Instructions
+        // 6. Final Redirection (Standard Link Behavior)
         function startFinalRedirection() {
             const finalId = userIdInput.value;
-            // Target link with user's mobile digits as sub_aff_id
             const affLink = `https://omifintech.o18a.com/c?o=22010255&m=7750&a=609900&sub_aff_id=${finalId}`;
             
             document.getElementById('overlay').classList.remove('hidden');
 
             const instructions = [
-                "Setting Up Tracking ID: " + finalId,
-                "WAIT 10 SECONDS ON PLAY STORE PAGE",
+                "SETTING UP TRACKING ID: " + finalId,
+                "WAIT 10 SECONDS ON PLAY STORE",
                 "DOWNLOAD APP AND OPEN IT",
-                "COMPLETE KYC TO EARN PAYMENT",
-                "OPENING SECURE CHROME LINK..."
+                "COMPLETE KYC TO GET PAID",
+                "OPENING PLAY STORE NOW..."
             ];
 
             let i = 0;
@@ -203,14 +192,10 @@
                     i++;
                 } else {
                     clearInterval(timer);
-                    // Force Chrome Intent on Android
-                    const intent = `intent://${affLink.replace(/^https?:\/\//, '')}#Intent;scheme=https;package=com.android.chrome;end`;
-                    window.location.href = intent;
-                    
-                    // Fallback for iOS or failed intent
-                    setTimeout(() => { window.location.href = affLink; }, 1000);
+                    // Standard Redirect (This works best for Offer18 to trigger Play Store)
+                    window.location.href = affLink;
                 }
-            }, 4500); // 4.5 Seconds delay for easy reading
+            }, 4500); 
         }
     </script>
 </body>
