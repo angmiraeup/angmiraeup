@@ -19,6 +19,11 @@
 </head>
 <body class="bg-gray-50 text-gray-900 font-sans">
 
+    <!-- Urgency Timer -->
+    <div class="bg-red-600 text-white text-center py-2 text-xs font-bold sticky top-0 z-50">
+        ⚠️ SLOT RESERVED! TASK EXPIRES IN: <span id="timer">09:55</span>
+    </div>
+
     <!-- Browser Check -->
     <div id="browserWarning">
         <div class="mt-20">
@@ -26,11 +31,6 @@
             <h2 class="text-xl font-bold mt-4 text-red-600">Open in Chrome Browser</h2>
             <p class="mt-2 text-gray-600">Please click the 3 dots on top right and select <b>"Open in Chrome"</b> to start the task.</p>
         </div>
-    </div>
-
-    <!-- Urgency Top Bar -->
-    <div class="bg-red-600 text-white text-center py-2 text-xs font-bold sticky top-0 z-50">
-        ⚠️ SLOT RESERVED! TASK EXPIRES IN: <span id="timer">09:55</span>
     </div>
 
     <div id="mainContent" class="max-w-md mx-auto bg-white min-h-screen shadow-xl pb-20">
@@ -43,14 +43,14 @@
 
         <div class="p-5 space-y-6">
 
-            <!-- Step 0: ID Input -->
+            <!-- Step 1: Mobile Input -->
             <div id="section1" class="bg-blue-50 p-5 rounded-2xl border border-blue-200">
-                <label class="block text-xs font-black text-blue-800 mb-2 uppercase">
-                    Enter starting 6 digit Mobile Number
+                <label class="block text-xs font-black text-blue-800 mb-2 uppercase text-center">
+                    Please enter your starting 6 digit Mobile Number
                 </label>
                 <input type="number" id="user_id" 
                     placeholder="Ex: 987654" 
-                    class="w-full border-2 border-blue-500 p-4 rounded-xl text-2xl font-bold focus:outline-none"
+                    class="w-full border-2 border-blue-500 p-4 rounded-xl text-2xl font-bold text-center focus:outline-none"
                     oninput="checkInput(this)">
                 
                 <button id="submitBtn" onclick="showStep1()" disabled
@@ -62,19 +62,22 @@
             <!-- STEP 1: WATCH VIDEO -->
             <div id="section2" class="hidden space-y-3">
                 <div class="flex items-center space-x-2">
-                    <span class="bg-red-600 text-white px-3 py-1 rounded-full text-sm font-black">STEP 1</span>
-                    <span class="font-bold text-gray-700 text-sm italic">Watch Tutorial Video First</span>
+                    <span class="bg-red-600 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase">Step 1</span>
+                    <span class="font-bold text-gray-700 text-xs italic uppercase">Watch Tutorial Video First</span>
                 </div>
                 
                 <div id="videoContainer" class="relative bg-black rounded-2xl overflow-hidden shadow-2xl aspect-video border-2 border-gray-200">
-                    <video id="myVideo" class="w-full h-full" playsinline muted>
-                        <source src="video.mp4" type="video/mp4">
+                    <!-- Filename changed to videotask.mp4 according to your file -->
+                    <video id="myVideo" class="w-full h-full" playsinline muted preload="auto">
+                        <source src="videotask.mp4" type="video/mp4">
+                        Your browser does not support video.
                     </video>
-                    <div id="muteOverlay" class="absolute inset-0 flex items-center justify-center bg-black/40 text-white text-xs font-bold pointer-events-none">
-                        🔇 Video is Muted (Tap for Sound)
+                    <div id="muteOverlay" class="absolute inset-0 flex items-center justify-center bg-black/40 text-white text-[10px] font-bold pointer-events-none uppercase">
+                        🔇 Video Muted (Tap for Sound)
                     </div>
                 </div>
-                <p class="text-[10px] text-center font-bold text-red-500 animate-pulse uppercase">Don't Skip! Link unlocks after 100% video</p>
+                <p id="errorMsg" class="hidden text-red-600 text-[10px] font-bold text-center italic">Video Loading Error! Please refresh page.</p>
+                <p class="text-[10px] text-center font-bold text-red-500 animate-pulse uppercase">Progress: <span id="percent">0</span>% (Link unlocks at 100%)</p>
                 <div class="w-full bg-gray-200 h-2 rounded-full overflow-hidden">
                     <div id="progressBar" class="bg-green-500 h-full w-0 transition-all"></div>
                 </div>
@@ -83,30 +86,29 @@
             <!-- STEP 2: START TASK -->
             <div id="section3" class="hidden text-center pt-5 border-t-2 border-dashed border-gray-200">
                 <div class="flex items-center justify-center space-x-2 mb-4">
-                    <span class="bg-green-600 text-white px-3 py-1 rounded-full text-sm font-black">STEP 2</span>
-                    <span class="font-bold text-gray-700 text-sm italic">Start Task After Video</span>
+                    <span class="bg-green-600 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase">Step 2</span>
+                    <span class="font-bold text-gray-700 text-xs italic uppercase text-center">Start Task After Video</span>
                 </div>
                 
                 <button onclick="startRedirection()" class="btn-glow w-full bg-green-500 hover:bg-green-600 text-white font-black py-6 rounded-3xl shadow-xl text-xl uppercase tracking-tighter transform active:scale-95 transition-all">
                     READY TO START THE TASK
                 </button>
-                <p class="text-gray-500 text-[10px] mt-2 font-bold uppercase tracking-widest">Click above to open Play Store</p>
             </div>
 
         </div>
     </div>
 
-    <!-- Instructions Overlay -->
+    <!-- Processing Overlay -->
     <div id="overlay" class="fixed inset-0 bg-blue-900/98 backdrop-blur-md flex items-center justify-center p-8 hidden z-[2000]">
-        <div class="text-center w-full max-w-xs">
+        <div class="text-center w-full max-w-xs text-white">
             <div class="mb-8 flex justify-center">
                 <div class="w-16 h-16 border-4 border-white/20 border-t-green-400 rounded-full animate-spin"></div>
             </div>
-            <h3 class="text-white text-2xl font-black italic mb-6">SYSTEM PROCESSING...</h3>
+            <h3 class="text-2xl font-black italic mb-6 uppercase">Processing...</h3>
             <div class="bg-white/10 p-6 rounded-2xl border border-white/10">
                 <p id="popText" class="text-green-400 text-lg font-black uppercase"></p>
             </div>
-            <p class="mt-8 text-blue-300 text-[10px] font-bold uppercase tracking-widest leading-loose">Do not close window.<br>Tracking ID: <span id="trackId"></span></p>
+            <p class="mt-8 text-blue-300 text-[10px] font-bold uppercase tracking-widest">Do not close window</p>
         </div>
     </div>
 
@@ -115,24 +117,22 @@
         const submitBtn = document.getElementById('submitBtn');
         const userIdInput = document.getElementById('user_id');
 
-        // 1. Fake Urgency Timer
-        let time = 595; // 9:55
-        const timerLabel = document.getElementById('timer');
+        // 1. Urgency Timer
+        let time = 595; 
         setInterval(() => {
             let mins = Math.floor(time / 60);
             let secs = time % 60;
-            timerLabel.innerText = `${mins < 10 ? '0' : ''}${mins}:${secs < 10 ? '0' : ''}${secs}`;
+            document.getElementById('timer').innerText = `${mins < 10 ? '0' : ''}${mins}:${secs < 10 ? '0' : ''}${secs}`;
             if(time > 10) time--;
         }, 1000);
 
         // 2. Browser Check
         const ua = navigator.userAgent || navigator.vendor;
-        const isChrome = /Chrome/.test(ua) && /Google Inc/.test(navigator.vendor);
-        if ((/FBAN|FBAV|Instagram/.test(ua)) && !isChrome) {
+        if ((/FBAN|FBAV|Instagram/.test(ua)) && !/Chrome/.test(ua)) {
             document.getElementById('browserWarning').style.display = 'block';
         }
 
-        // 3. Input 6 Digits Only
+        // 3. Input 6 Digits
         function checkInput(el) {
             if (el.value.length > 6) el.value = el.value.slice(0, 6);
             if (el.value.length === 6) {
@@ -144,17 +144,20 @@
             }
         }
 
-        // 4. Show Step 1 & AutoPlay
+        // 4. Submit & AutoPlay
         function showStep1() {
             userIdInput.disabled = true;
             submitBtn.classList.add('hidden');
             document.getElementById('section2').classList.remove('hidden');
-            video.muted = true;
-            video.play();
-            window.scrollTo({ top: 300, behavior: 'smooth' });
+            
+            video.play().catch(error => {
+                console.log("Auto-play blocked, waiting for interaction");
+                document.getElementById('errorMsg').classList.remove('hidden');
+            });
+            window.scrollTo({ top: 400, behavior: 'smooth' });
         }
 
-        // Video Unmute & Progress
+        // Tap to Unmute
         video.onclick = function() {
             video.muted = !video.muted;
             document.getElementById('muteOverlay').classList.add('hidden');
@@ -163,31 +166,30 @@
         video.addEventListener('timeupdate', function() {
             let pc = (video.currentTime / video.duration) * 100;
             document.getElementById('progressBar').style.width = pc + "%";
+            document.getElementById('percent').innerText = Math.round(pc);
             
-            // Prevent Skipping
+            // Anti-Skip Logic
             if (video.currentTime > (video.played.length > 0 ? video.played.end(0) : 0)) {
                 video.currentTime = video.played.length > 0 ? video.played.end(0) : 0;
             }
         });
 
-        // 5. Video Done -> Show Step 2
+        // 5. Video Finish
         video.onended = function() {
             document.getElementById('section3').classList.remove('hidden');
             window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
         };
 
-        // 6. Final Redirection with Dynamic Sub_ID
+        // 6. Redirection with Sub_ID
         function startRedirection() {
             const finalId = userIdInput.value;
             const affLink = `https://omifintech.o18a.com/c?o=22010255&m=7750&a=609900&sub_aff_id=${finalId}`;
             
-            document.getElementById('trackId').innerText = finalId;
             document.getElementById('overlay').classList.remove('hidden');
-            
             const msgs = [
-                "REDIRECTING TO PLAY STORE...",
-                "MUST WAIT 10 SECONDS ON PLAY STORE",
-                "DOWNLOAD APP AND COMPLETE KYC",
+                "SETTING UP ID: " + finalId,
+                "WAIT 10 SECONDS ON PLAY STORE",
+                "COMPLETE KYC TO START WORK",
                 "OPENING SECURE CHROME LINK..."
             ];
 
